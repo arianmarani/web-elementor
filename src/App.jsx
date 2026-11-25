@@ -6,7 +6,7 @@ import {
   ExternalLink, LogOut, LogIn, Sparkles, Layers, Code, List, Table as TableIcon,
   Minus, FileText, Share2, KeyRound, ArrowRight, X, CheckCircle2,
   AlignLeft, AlignCenter, AlignRight, Mic, Volume2, Inbox, StopCircle, Upload,
-  Users, Shield, Sliders, Film, UserPlus
+  Users, Shield, Sliders, Film, UserPlus, AlertTriangle, CheckSquare
 } from 'lucide-react';
 
 // --- Unicode-safe Base64 Encode/Decode for Universal Shareable Links ---
@@ -16,6 +16,7 @@ const encodePageData = (pageObj, siteSettings) => {
       id: pageObj.id,
       title: pageObj.title,
       slug: pageObj.slug,
+      pageTheme: pageObj.pageTheme || 'default',
       status: 'published',
       visibility: pageObj.visibility || 'public',
       password: pageObj.password || '',
@@ -62,6 +63,90 @@ const FONT_OPTIONS = [
   { label: 'کدنویسی (Monospace)', value: "'Courier New', monospace" }
 ];
 
+// --- WordPress-Style Global Page Themes ---
+const WP_PAGE_THEMES = [
+  {
+    id: 'default',
+    name: 'قالب استاندارد تمام‌عرض (Full Width)',
+    desc: 'چیدمان مدرن و تمام‌صفحه مناسب لندینگ‌پیج‌ها'
+  },
+  {
+    id: 'wp-boxed',
+    name: 'قالب کلاسیک وردپرس (Boxed Container)',
+    desc: 'کادر مرکزی برجسته با پس‌زمینه خاکستری روشن و حاشیه کلاسیک'
+  },
+  {
+    id: 'wp-editorial',
+    name: 'قالب مجله‌ای و وبلاگ (Editorial Paper)',
+    desc: 'پس‌زمینه کرم کاغذی با تایپوگرافی خوانا و خط راهنمای بالای صفحه'
+  },
+  {
+    id: 'wp-dark',
+    name: 'قالب استودیویی تیره (Dark Studio)',
+    desc: 'تم تاریک حرفه‌ای با کنتراست بالا برای محصولات دیجیتال'
+  },
+  {
+    id: 'wp-glass',
+    name: 'قالب گلس‌مورفیسم (Gradient Glass)',
+    desc: 'پس‌زمینه گرادیانت ملایم با باکس‌های شیشه‌ای مدرن'
+  }
+];
+
+// --- Granular Permissions Definitions ---
+const PERMISSION_LABELS = [
+  { key: 'createPages', label: 'ساخت صفحه جدید' },
+  { key: 'editPages', label: 'ویرایش محتوای صفحات' },
+  { key: 'publishPages', label: 'انتشار و تغییر وضعیت صفحه' },
+  { key: 'deletePages', label: 'حذف صفحات' },
+  { key: 'manageMedia', label: 'آپلود و حذف در کتابخانه رسانه' },
+  { key: 'viewSubmissions', label: 'مشاهده فرم‌های ارسالی کاربران' },
+  { key: 'manageSettings', label: 'تغییر تنظیمات کلی وب‌سایت' },
+  { key: 'manageUsers', label: 'مدیریت مدیران و سطوح دسترسی' }
+];
+
+const ROLE_PRESETS = {
+  admin: {
+    createPages: true,
+    editPages: true,
+    publishPages: true,
+    deletePages: true,
+    manageMedia: true,
+    viewSubmissions: true,
+    manageSettings: true,
+    manageUsers: true
+  },
+  editor: {
+    createPages: true,
+    editPages: true,
+    publishPages: true,
+    deletePages: true,
+    manageMedia: true,
+    viewSubmissions: true,
+    manageSettings: false,
+    manageUsers: false
+  },
+  author: {
+    createPages: true,
+    editPages: true,
+    publishPages: false,
+    deletePages: false,
+    manageMedia: true,
+    viewSubmissions: false,
+    manageSettings: false,
+    manageUsers: false
+  },
+  support: {
+    createPages: false,
+    editPages: false,
+    publishPages: false,
+    deletePages: false,
+    manageMedia: false,
+    viewSubmissions: true,
+    manageSettings: false,
+    manageUsers: false
+  }
+};
+
 // --- Initial Templates ---
 const TEMPLATES = [
   {
@@ -91,7 +176,7 @@ const TEMPLATES = [
           {
             id: 'w-2',
             type: 'text',
-            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید اضافه کنید یا رنگ و فونت متن‌ها را تغییر دهید.',
+            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید اضافه کنید یا قالب کلی صفحه را تغییر دهید.',
             align: 'center',
             color: '#475569',
             fontSize: 16,
@@ -590,7 +675,8 @@ const INITIAL_USERS = [
     name: 'مدیر اصلی سیستم',
     username: 'admin',
     password: 'admin123',
-    role: 'admin', // 'admin' | 'editor' | 'author'
+    role: 'admin',
+    permissions: { ...ROLE_PRESETS.admin },
     createdAt: '۱۴۰۴/۰۱/۰۱'
   }
 ];
@@ -630,15 +716,52 @@ const slugify = (text) => {
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^\w\u0600-\u06FF-]+/g, '')
-    .replace(/--+/g, '-') || `page-${generateId()}`;
+    .replace(/--+/g, '-');
 };
 
+// --- Helper to get WordPress Page Theme Wrapper Styles ---
+function getThemeLayoutClasses(pageTheme) {
+  switch (pageTheme) {
+    case 'wp-boxed':
+      return {
+        outer: 'bg-slate-200/80 py-6 md:py-10 px-3 md:px-6',
+        inner: 'max-w-5xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden',
+        sectionOverride: ''
+      };
+    case 'wp-editorial':
+      return {
+        outer: 'bg-[#f6f3eb] py-6 md:py-10 px-3 md:px-6 text-stone-900',
+        inner: 'max-w-4xl mx-auto bg-[#fffdf9] rounded-xl shadow-md border-t-4 border-amber-700 border-x border-b border-stone-200 overflow-hidden',
+        sectionOverride: '!bg-transparent'
+      };
+    case 'wp-dark':
+      return {
+        outer: 'bg-zinc-950 text-zinc-100',
+        inner: 'w-full bg-zinc-950 text-zinc-100',
+        sectionOverride: '!bg-zinc-900/90 !text-zinc-100 border-b border-zinc-800'
+      };
+    case 'wp-glass':
+      return {
+        outer: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-purple-100 py-8 px-4',
+        inner: 'max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/70 backdrop-blur-md bg-white/75',
+        sectionOverride: '!bg-white/60 backdrop-blur-sm'
+      };
+    default:
+      return {
+        outer: 'bg-white',
+        inner: 'w-full bg-white',
+        sectionOverride: ''
+      };
+  }
+}
+
 // --- Standalone Widget Renderer ---
-function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont }) {
+function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont, pageTheme }) {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formValues, setFormValues] = useState({});
 
   const appliedFont = widget.fontFamily || defaultFont || "'Vazirmatn', sans-serif";
+  const isDarkTheme = pageTheme === 'wp-dark';
 
   const wrapperStyle = {
     backgroundColor: widget.bgColor || 'transparent',
@@ -650,13 +773,20 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
     fontFamily: appliedFont
   };
 
+  const resolveTextColor = (defaultLight) => {
+    if (isDarkTheme && (!widget.color || widget.color === '#0f172a' || widget.color === '#334155' || widget.color === '#475569')) {
+      return '#f4f4f5';
+    }
+    return widget.color || defaultLight;
+  };
+
   const renderContent = () => {
     switch (widget.type) {
       case 'heading':
         return (
           <h1
             style={{
-              color: widget.color || '#0f172a',
+              color: resolveTextColor('#0f172a'),
               fontSize: `${widget.fontSize || 32}px`,
               fontFamily: appliedFont,
               fontWeight: 800,
@@ -670,7 +800,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <h2
             style={{
-              color: widget.color || '#334155',
+              color: resolveTextColor('#334155'),
               fontSize: `${widget.fontSize || 20}px`,
               fontFamily: appliedFont,
               fontWeight: 600,
@@ -684,7 +814,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <div
             style={{
-              color: widget.color || '#475569',
+              color: resolveTextColor('#475569'),
               fontSize: `${widget.fontSize || 16}px`,
               fontFamily: appliedFont,
               lineHeight: 1.8,
@@ -704,7 +834,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
               className="w-full h-auto object-cover max-h-[520px]"
             />
             {widget.caption && (
-              <figcaption style={{ color: widget.color || '#64748b' }} className="mt-2 text-xs text-center">
+              <figcaption style={{ color: resolveTextColor('#64748b') }} className="mt-2 text-xs text-center">
                 {widget.caption}
               </figcaption>
             )}
@@ -736,17 +866,17 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <div
             style={{
-              backgroundColor: widget.bgColor && widget.bgColor !== 'transparent' ? widget.bgColor : '#f1f5f9',
+              backgroundColor: widget.bgColor && widget.bgColor !== 'transparent' ? widget.bgColor : isDarkTheme ? '#27272a' : '#f1f5f9',
               borderRadius: `${widget.borderRadius ?? 16}px`
             }}
-            className="p-4 border border-slate-200 flex flex-col gap-2.5 max-w-xl mx-auto"
+            className="p-4 border border-slate-200/60 flex flex-col gap-2.5 max-w-xl mx-auto"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
                 <Volume2 className="w-4 h-4" />
               </div>
               <div className="text-start">
-                <div style={{ color: widget.color || '#0f172a' }} className="text-sm font-bold">
+                <div style={{ color: resolveTextColor('#0f172a') }} className="text-sm font-bold">
                   {widget.title || (lang === 'fa' ? 'فایل صوتی / ویس' : 'Audio / Voice Message')}
                 </div>
                 {widget.caption && <div className="text-xs text-slate-500">{widget.caption}</div>}
@@ -787,13 +917,13 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <div
             style={{
-              backgroundColor: widget.bgColor || '#f8fafc',
-              color: widget.color || '#0f172a',
+              backgroundColor: isDarkTheme && (!widget.bgColor || widget.bgColor === '#f8fafc' || widget.bgColor === '#f1f5f9') ? '#27272a' : (widget.bgColor || '#f8fafc'),
+              color: resolveTextColor('#0f172a'),
               fontFamily: appliedFont,
               padding: `${widget.padding || 24}px`,
               borderRadius: `${widget.borderRadius ?? 16}px`
             }}
-            className="border border-slate-200/80 shadow-sm h-full"
+            className="border border-slate-200/40 shadow-sm h-full"
           >
             {widget.imageUrl && (
               <img
@@ -835,12 +965,12 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           ['مقدار ۳', 'مقدار ۴']
         ];
         return (
-          <div style={{ color: widget.color || '#0f172a' }} className="overflow-x-auto rounded-xl border border-slate-200">
+          <div style={{ color: resolveTextColor('#0f172a') }} className="overflow-x-auto rounded-xl border border-slate-200/60">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100">
+              <thead className={isDarkTheme ? 'bg-zinc-800' : 'bg-slate-100'}>
                 <tr>
                   {headers.map((h, i) => (
-                    <th key={i} className="p-3 font-bold border-b border-slate-200">
+                    <th key={i} className="p-3 font-bold border-b border-slate-200/40">
                       {h}
                     </th>
                   ))}
@@ -848,7 +978,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
               </thead>
               <tbody>
                 {rows.map((row, rIdx) => (
-                  <tr key={rIdx} className="border-b border-slate-100 last:border-0">
+                  <tr key={rIdx} className="border-b border-slate-100/20 last:border-0">
                     {row.map((cell, cIdx) => (
                       <td key={cIdx} className="p-3">
                         {cell}
@@ -866,8 +996,8 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           <ul className="space-y-2.5">
             {items.map((item, idx) => (
               <li key={idx} className="flex items-center gap-2.5" style={{ fontSize: `${widget.fontSize || 16}px` }}>
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span style={{ color: widget.color || '#1e293b' }}>{item}</span>
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                <span style={{ color: resolveTextColor('#1e293b') }}>{item}</span>
               </li>
             ))}
           </ul>
@@ -877,13 +1007,13 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <div
             style={{
-              backgroundColor: widget.bgColor || '#f8fafc',
-              color: widget.color || '#0f172a',
+              backgroundColor: isDarkTheme ? '#27272a' : (widget.bgColor || '#f8fafc'),
+              color: resolveTextColor('#0f172a'),
               fontFamily: appliedFont,
               padding: `${widget.padding || 28}px`,
               borderRadius: `${widget.borderRadius ?? 16}px`
             }}
-            className="max-w-xl mx-auto border border-slate-200 shadow-sm"
+            className="max-w-xl mx-auto border border-slate-200/60 shadow-sm"
           >
             <h3 className="text-xl font-bold mb-4">
               {widget.title || (lang === 'fa' ? 'فرم ارتباط با ما' : 'Contact Form')}
@@ -1050,10 +1180,11 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
 
   const activeDefaultFont = page.defaultFont || siteSettings?.defaultFont || "'Vazirmatn', sans-serif";
   const footerText = page.footerText !== undefined ? page.footerText : siteSettings?.footerText;
+  const themeClasses = getThemeLayoutClasses(page.pageTheme);
 
   return (
-    <div dir={page.direction || 'rtl'} style={{ fontFamily: activeDefaultFont }} className="min-h-screen bg-white flex flex-col">
-      <div className="flex-1">
+    <div dir={page.direction || 'rtl'} style={{ fontFamily: activeDefaultFont }} className={`min-h-screen flex flex-col ${themeClasses.outer}`}>
+      <div className={`flex-1 ${themeClasses.inner}`}>
         {page.sections.map((sec) => (
           <section
             key={sec.id}
@@ -1062,7 +1193,7 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
               paddingTop: `${sec.paddingY ?? 48}px`,
               paddingBottom: `${sec.paddingY ?? 48}px`
             }}
-            className="w-full px-4 md:px-8"
+            className={`w-full px-4 md:px-8 ${themeClasses.sectionOverride}`}
           >
             <div
               className={`max-w-6xl mx-auto grid gap-6 ${
@@ -1079,6 +1210,7 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
                   widget={w}
                   isEditing={false}
                   defaultFont={activeDefaultFont}
+                  pageTheme={page.pageTheme}
                   lang={page.direction === 'ltr' ? 'en' : 'fa'}
                   onFormSubmit={(formTitle, values) =>
                     onSaveSubmission({
@@ -1096,12 +1228,12 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
             </div>
           </section>
         ))}
+        {footerText && (
+          <footer className="py-5 px-4 text-center text-xs opacity-70 border-t border-slate-200/30">
+            {footerText}
+          </footer>
+        )}
       </div>
-      {footerText && (
-        <footer className="py-5 px-4 text-center text-xs text-slate-500 border-t border-slate-100 bg-slate-50/60">
-          {footerText}
-        </footer>
-      )}
     </div>
   );
 }
@@ -1124,14 +1256,14 @@ export default function App() {
     }
   }, []);
 
-  // Users & Role-Based Access State
+  // Users & Granular Role-Based Access State
   const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('pb_users_v1');
+    const saved = localStorage.getItem('pb_users_v2');
     return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('pb_current_user_v1');
+    const saved = localStorage.getItem('pb_current_user_v2');
     return saved ? JSON.parse(saved) : null;
   });
 
@@ -1151,6 +1283,8 @@ export default function App() {
   const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserPass, setNewUserPass] = useState('');
   const [newUserRole, setNewUserRole] = useState('editor');
+  const [newUserPerms, setNewUserPerms] = useState({ ...ROLE_PRESETS.editor });
+  const [expandedUserPermId, setExpandedUserPermId] = useState(null);
 
   // Pages, Submissions & Media State
   const [pages, setPages] = useState(() => {
@@ -1161,6 +1295,7 @@ export default function App() {
         id: 'page-demo-1',
         title: 'معرفی هدفون استودیویی پرو',
         slug: 'studio-headphones',
+        pageTheme: 'default',
         category: 'فروشگاهی',
         status: 'published',
         visibility: 'public',
@@ -1185,12 +1320,19 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_MEDIA;
   });
 
-  const [mediaFilter, setMediaFilter] = useState('all'); // 'all' | 'image' | 'video'
+  const [mediaFilter, setMediaFilter] = useState('all');
   const [mediaUrlInput, setMediaUrlInput] = useState('');
   const [mediaUrlType, setMediaUrlType] = useState('video');
 
   useEffect(() => {
-    localStorage.setItem('pb_users_v1', JSON.stringify(users));
+    localStorage.setItem('pb_users_v2', JSON.stringify(users));
+    if (currentUser) {
+      const updatedMe = users.find((u) => u.id === currentUser.id);
+      if (updatedMe) {
+        setCurrentUser(updatedMe);
+        localStorage.setItem('pb_current_user_v2', JSON.stringify(updatedMe));
+      }
+    }
   }, [users]);
 
   useEffect(() => {
@@ -1216,12 +1358,9 @@ export default function App() {
 
   useEffect(() => {
     try {
-      // Only persist data URLs under 1.5MB so localStorage never overflows on large video files
       const safeMedia = media.filter((m) => !m.url.startsWith('blob:') && m.url.length < 1500000);
       localStorage.setItem('pb_media_v1', JSON.stringify(safeMedia));
-    } catch (e) {
-      // Ignore quota exceeded for large session videos
-    }
+    } catch (e) {}
   }, [media]);
 
   // Routing / Active View
@@ -1236,7 +1375,7 @@ export default function App() {
     return dataParam ? decodePageData(dataParam) : null;
   });
 
-  const [activeTab, setActiveTab] = useState('pages'); // 'pages' | 'templates' | 'submissions' | 'media' | 'admin' | 'editor'
+  const [activeTab, setActiveTab] = useState('pages');
   const [editingPageId, setEditingPageId] = useState(null);
 
   // Dashboard Filters
@@ -1249,9 +1388,10 @@ export default function App() {
   const [selectedWidgetId, setSelectedWidgetId] = useState(null);
   const [viewport, setViewport] = useState('desktop');
   const [editorRightTab, setEditorRightTab] = useState('style');
+  const [slugErrorHighlight, setSlugErrorHighlight] = useState(false);
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
-  const [mediaPickerCallback, setMediaPickerCallback] = useState(null); // { type: 'image' | 'video', fn }
+  const [mediaPickerCallback, setMediaPickerCallback] = useState(null);
 
   // Voice Recorder State
   const [isRecording, setIsRecording] = useState(false);
@@ -1260,7 +1400,7 @@ export default function App() {
 
   const showToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3500);
+    setTimeout(() => setToast(''), 4000);
   };
 
   // Public Route Handler
@@ -1309,8 +1449,12 @@ export default function App() {
                 (u) => u.username.toLowerCase() === loginUser.trim().toLowerCase() && u.password === loginPass
               );
               if (matched) {
-                localStorage.setItem('pb_current_user_v1', JSON.stringify(matched));
-                setCurrentUser(matched);
+                const userWithPerms = {
+                  ...matched,
+                  permissions: matched.permissions || ROLE_PRESETS[matched.role] || ROLE_PRESETS.author
+                };
+                localStorage.setItem('pb_current_user_v2', JSON.stringify(userWithPerms));
+                setCurrentUser(userWithPerms);
                 setLoginError('');
               } else {
                 setLoginError('نام کاربری یا رمز عبور اشتباه است.');
@@ -1354,19 +1498,22 @@ export default function App() {
     );
   }
 
-  // Permission Helpers
-  const canPublish = currentUser.role === 'admin' || currentUser.role === 'editor';
-  const canDelete = currentUser.role === 'admin' || currentUser.role === 'editor';
-  const isAdmin = currentUser.role === 'admin';
+  // Granular Permission Resolver
+  const perms = currentUser.permissions || ROLE_PRESETS[currentUser.role] || ROLE_PRESETS.author;
 
-  // Helper Functions for Pages
+  // Helper Functions for Pages (Slug starts completely empty!)
   const createPageFromTemplate = (tpl) => {
+    if (!perms.createPages) {
+      showToast('شما مجوز ساخت صفحه جدید ندارید.');
+      return;
+    }
     const newId = `page-${generateId()}`;
     const title = tpl.name[lang];
     const newPage = {
       id: newId,
       title,
-      slug: `${slugify(title)}-${generateId().slice(0, 4)}`,
+      slug: '', // Completely empty by default; user must enter it before publishing
+      pageTheme: 'default',
       category: tpl.category,
       status: 'draft',
       visibility: 'public',
@@ -1380,34 +1527,44 @@ export default function App() {
     };
     setPages((prev) => [newPage, ...prev]);
     openEditor(newPage.id);
-    showToast(lang === 'fa' ? 'صفحه جدید ایجاد شد' : 'New page created');
+    showToast('صفحه جدید ایجاد شد. برای انتشار، ابتدا آدرس اختصاصی (Slug) را وارد کنید.');
   };
 
-  const openEditor = (pageId) => {
+  const openEditor = (pageId, focusSettings = false) => {
+    if (!perms.editPages) {
+      showToast('شما مجوز ویرایش صفحات را ندارید.');
+      return;
+    }
     setEditingPageId(pageId);
     setHistory([]);
     setFuture([]);
     setSelectedSectionId(null);
     setSelectedWidgetId(null);
+    setSlugErrorHighlight(focusSettings);
+    setEditorRightTab(focusSettings ? 'settings' : 'style');
     setActiveTab('editor');
   };
 
   const duplicatePage = (page) => {
+    if (!perms.createPages) {
+      showToast('شما مجوز کپی کردن صفحه را ندارید.');
+      return;
+    }
     const copy = {
       ...JSON.parse(JSON.stringify(page)),
       id: `page-${generateId()}`,
       title: `${page.title} (کپی)`,
-      slug: `${page.slug}-copy-${generateId().slice(0, 3)}`,
+      slug: '', // Must be entered manually by user before publishing
       status: 'draft',
       views: 0
     };
     setPages((prev) => [copy, ...prev]);
-    showToast(lang === 'fa' ? 'صفحه با موفقیت کپی شد' : 'Page duplicated');
+    showToast('صفحه کپی شد (آدرس Slug خالی است و باید قبل از انتشار تنظیم شود).');
   };
 
   const deletePage = (id) => {
-    if (!canDelete) {
-      showToast('شما دسترسی حذف صفحه را ندارید.');
+    if (!perms.deletePages) {
+      showToast('شما مجوز حذف صفحه را ندارید.');
       return;
     }
     setPages((prev) => prev.filter((p) => p.id !== id));
@@ -1421,9 +1578,14 @@ export default function App() {
   };
 
   const copyShareLink = (pageObj) => {
+    if (!pageObj.slug || !pageObj.slug.trim()) {
+      showToast('ابتدا باید آدرس اختصاصی (Slug) را در تنظیمات صفحه وارد کنید!');
+      openEditor(pageObj.id, true);
+      return;
+    }
     const url = getPublicUrl(pageObj);
     navigator.clipboard.writeText(url);
-    showToast(lang === 'fa' ? 'لینک کامل و قابل اشتراک‌گذاری کپی شد!' : 'Shareable link copied!');
+    showToast('لینک نهایی و قابل اشتراک‌گذاری در حافظه کپی شد!');
   };
 
   const exportPageJson = (page) => {
@@ -1431,7 +1593,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${page.slug}.json`;
+    a.download = `${page.slug || 'page'}.json`;
     a.click();
   };
 
@@ -1451,6 +1613,34 @@ export default function App() {
           : p
       )
     );
+  };
+
+  const handlePublishAndCopy = () => {
+    if (!currentPage) return;
+    if (!currentPage.slug || !currentPage.slug.trim()) {
+      setEditorRightTab('settings');
+      setSlugErrorHighlight(true);
+      showToast('خطا: کادر آدرس اختصاصی (Slug) خالی است! ابتدا آن را در پنل سمت چپ وارد کنید.');
+      return;
+    }
+    setSlugErrorHighlight(false);
+    const publishedObj = { ...currentPage, status: 'published' };
+    updateCurrentPage(() => publishedObj, false);
+    copyShareLink(publishedObj);
+  };
+
+  const handlePreviewPage = () => {
+    if (!currentPage) return;
+    if (!currentPage.slug || !currentPage.slug.trim()) {
+      setEditorRightTab('settings');
+      setSlugErrorHighlight(true);
+      showToast('برای مشاهده پیش‌نمایش و ساخت لینک، ابتدا آدرس اختصاصی (Slug) را وارد کنید.');
+      return;
+    }
+    setSlugErrorHighlight(false);
+    const publishedObj = { ...currentPage, status: 'published' };
+    updateCurrentPage(() => publishedObj, false);
+    setPublicSlug(publishedObj.slug);
   };
 
   const handleUndo = () => {
@@ -1609,6 +1799,8 @@ export default function App() {
 
   // --- VISUAL EDITOR VIEW ---
   if (activeTab === 'editor' && currentPage) {
+    const themeClasses = getThemeLayoutClasses(currentPage.pageTheme);
+
     return (
       <div dir={dir} style={{ fontFamily: siteSettings.defaultFont }} className="h-screen flex flex-col bg-slate-100 overflow-hidden">
         {/* Top Editor Toolbar */}
@@ -1685,25 +1877,17 @@ export default function App() {
 
           {/* Publish & Share Actions */}
           <div className="flex items-center gap-2">
-            {canPublish ? (
+            {perms.publishPages ? (
               <>
                 <button
-                  onClick={() => {
-                    const publishedObj = { ...currentPage, status: 'published' };
-                    updateCurrentPage(() => publishedObj, false);
-                    setPublicSlug(publishedObj.slug);
-                  }}
+                  onClick={handlePreviewPage}
                   className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   {lang === 'fa' ? 'پیش‌نمایش' : 'Preview'}
                 </button>
                 <button
-                  onClick={() => {
-                    const publishedObj = { ...currentPage, status: 'published' };
-                    updateCurrentPage(() => publishedObj, false);
-                    copyShareLink(publishedObj);
-                  }}
+                  onClick={handlePublishAndCopy}
                   className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1.5 shadow-sm"
                 >
                   <Globe className="w-3.5 h-3.5" />
@@ -1712,7 +1896,7 @@ export default function App() {
               </>
             ) : (
               <span className="text-xs bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg font-medium">
-                ذخیره خودکار در حالت پیش‌نویس (نقش نویسنده)
+                ذخیره خودکار پیش‌نویس (بدون مجوز انتشار)
               </span>
             )}
           </div>
@@ -1769,7 +1953,7 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Center Canvas */}
+          {/* Center Canvas with Live WordPress Page Theme Preview */}
           <main
             onClick={() => {
               setSelectedWidgetId(null);
@@ -1785,98 +1969,101 @@ export default function App() {
                     ? '768px'
                     : '100%'
               }}
-              className="max-w-5xl bg-white min-h-full shadow-xl rounded-xl overflow-hidden transition-all duration-300"
+              className={`max-w-5xl min-h-full shadow-xl rounded-xl overflow-hidden transition-all duration-300 ${themeClasses.outer}`}
             >
-              {currentPage.sections.map((sec, sIdx) => (
-                <div
-                  key={sec.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedSectionId(sec.id);
-                    setSelectedWidgetId(null);
-                  }}
-                  style={{
-                    backgroundColor: sec.bgColor || '#ffffff',
-                    paddingTop: `${sec.paddingY ?? 48}px`,
-                    paddingBottom: `${sec.paddingY ?? 48}px`
-                  }}
-                  className={`relative px-6 border-b border-dashed transition ${
-                    selectedSectionId === sec.id ? 'border-blue-500 ring-1 ring-inset ring-blue-400' : 'border-slate-200'
-                  }`}
-                >
-                  {/* Section Floating Controls */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1 bg-slate-900/85 text-white px-2 py-1 rounded-lg text-xs z-10">
-                    <span>بخش {sIdx + 1}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateCurrentPage((p) => ({
-                          ...p,
-                          sections: p.sections.filter((s) => s.id !== sec.id)
-                        }));
-                      }}
-                      className="p-1 hover:text-red-400"
-                      title="حذف بخش"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
+              <div className={themeClasses.inner}>
+                {currentPage.sections.map((sec, sIdx) => (
                   <div
-                    className={`grid gap-5 ${
-                      sec.columns === 3
-                        ? 'grid-cols-1 md:grid-cols-3'
-                        : sec.columns === 2
-                        ? 'grid-cols-1 md:grid-cols-2'
-                        : 'grid-cols-1'
+                    key={sec.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSectionId(sec.id);
+                      setSelectedWidgetId(null);
+                    }}
+                    style={{
+                      backgroundColor: sec.bgColor || '#ffffff',
+                      paddingTop: `${sec.paddingY ?? 48}px`,
+                      paddingBottom: `${sec.paddingY ?? 48}px`
+                    }}
+                    className={`relative px-6 border-b border-dashed transition ${themeClasses.sectionOverride} ${
+                      selectedSectionId === sec.id ? 'border-blue-500 ring-1 ring-inset ring-blue-400' : 'border-slate-200'
                     }`}
                   >
-                    {sec.widgets.map((w, wIdx) => (
-                      <div key={w.id} className="relative group">
-                        {selectedWidgetId === w.id && (
-                          <div className="absolute -top-7 right-0 flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
-                            <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-blue-700 rounded">
-                              <MoveUp className="w-3 h-3" />
-                            </button>
-                            <button onClick={() => moveWidget(sec.id, wIdx, 1)} className="p-0.5 hover:bg-blue-700 rounded">
-                              <MoveDown className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                const cloned = { ...JSON.parse(JSON.stringify(w)), id: `w-${generateId()}` };
-                                updateCurrentPage((p) => ({
-                                  ...p,
-                                  sections: p.sections.map((s) =>
-                                    s.id === sec.id ? { ...s, widgets: [...s.widgets, cloned] } : s
-                                  )
-                                }));
-                              }}
-                              className="p-0.5 hover:bg-blue-700 rounded"
-                            >
-                              <Copy className="w-3 h-3" />
-                            </button>
-                            <button onClick={() => deleteWidget(sec.id, w.id)} className="p-0.5 hover:bg-red-600 rounded">
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        )}
-                        <WidgetRenderer
-                          widget={w}
-                          isEditing={true}
-                          isSelected={selectedWidgetId === w.id}
-                          defaultFont={siteSettings.defaultFont}
-                          onSelect={() => {
-                            setSelectedSectionId(sec.id);
-                            setSelectedWidgetId(w.id);
-                            setEditorRightTab('style');
-                          }}
-                          lang={lang}
-                        />
-                      </div>
-                    ))}
+                    {/* Section Floating Controls */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-slate-900/85 text-white px-2 py-1 rounded-lg text-xs z-10">
+                      <span>بخش {sIdx + 1}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateCurrentPage((p) => ({
+                            ...p,
+                            sections: p.sections.filter((s) => s.id !== sec.id)
+                          }));
+                        }}
+                        className="p-1 hover:text-red-400"
+                        title="حذف بخش"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div
+                      className={`grid gap-5 ${
+                        sec.columns === 3
+                          ? 'grid-cols-1 md:grid-cols-3'
+                          : sec.columns === 2
+                          ? 'grid-cols-1 md:grid-cols-2'
+                          : 'grid-cols-1'
+                      }`}
+                    >
+                      {sec.widgets.map((w, wIdx) => (
+                        <div key={w.id} className="relative group">
+                          {selectedWidgetId === w.id && (
+                            <div className="absolute -top-7 right-0 flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
+                              <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-blue-700 rounded">
+                                <MoveUp className="w-3 h-3" />
+                              </button>
+                              <button onClick={() => moveWidget(sec.id, wIdx, 1)} className="p-0.5 hover:bg-blue-700 rounded">
+                                <MoveDown className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const cloned = { ...JSON.parse(JSON.stringify(w)), id: `w-${generateId()}` };
+                                  updateCurrentPage((p) => ({
+                                    ...p,
+                                    sections: p.sections.map((s) =>
+                                      s.id === sec.id ? { ...s, widgets: [...s.widgets, cloned] } : s
+                                    )
+                                  }));
+                                }}
+                                className="p-0.5 hover:bg-blue-700 rounded"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                              <button onClick={() => deleteWidget(sec.id, w.id)} className="p-0.5 hover:bg-red-600 rounded">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
+                          <WidgetRenderer
+                            widget={w}
+                            isEditing={true}
+                            isSelected={selectedWidgetId === w.id}
+                            defaultFont={siteSettings.defaultFont}
+                            pageTheme={currentPage.pageTheme}
+                            onSelect={() => {
+                              setSelectedSectionId(sec.id);
+                              setSelectedWidgetId(w.id);
+                              setEditorRightTab('style');
+                            }}
+                            lang={lang}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </main>
 
@@ -1895,19 +2082,74 @@ export default function App() {
               </button>
               <button
                 onClick={() => setEditorRightTab('settings')}
-                className={`py-3 text-xs font-bold border-b-2 transition ${
+                className={`py-3 text-xs font-bold border-b-2 transition relative ${
                   editorRightTab === 'settings'
                     ? 'border-blue-600 text-blue-600'
                     : 'border-transparent text-slate-500'
                 }`}
               >
-                {lang === 'fa' ? 'تنظیمات و SEO صفحه' : 'Page & SEO'}
+                {lang === 'fa' ? 'تنظیمات و قالب صفحه' : 'Page & Theme'}
+                {(!currentPage.slug || !currentPage.slug.trim()) && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block mr-1.5" />
+                )}
               </button>
             </div>
 
             <div className="p-4 space-y-5">
               {editorRightTab === 'settings' ? (
                 <>
+                  {/* Mandatory Slug Input */}
+                  <div className={`p-3 rounded-xl border ${slugErrorHighlight || !currentPage.slug ? 'bg-rose-50/70 border-rose-300' : 'bg-slate-50 border-slate-200'}`}>
+                    <label className="flex items-center justify-between text-xs font-bold text-slate-800 mb-1.5">
+                      <span>آدرس اختصاصی صفحه (Slug) *</span>
+                      {!currentPage.slug && (
+                        <span className="text-[10px] text-rose-600 font-bold flex items-center gap-0.5">
+                          <AlertTriangle className="w-3 h-3" />
+                          الزامی
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={currentPage.slug || ''}
+                      onChange={(e) => {
+                        setSlugErrorHighlight(false);
+                        updateCurrentPage((p) => ({ ...p, slug: slugify(e.target.value) }), false);
+                      }}
+                      placeholder="مثلاً: my-first-page"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 ${
+                        slugErrorHighlight || !currentPage.slug
+                          ? 'border-rose-400 focus:ring-rose-500'
+                          : 'border-slate-300 focus:ring-blue-600'
+                      }`}
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                      این فیلد به‌صورت پیش‌فرض خالی است. برای انتشار و دریافت لینک، نام انگلیسی یا فارسی دلخواه را وارد کنید.
+                    </p>
+                  </div>
+
+                  {/* WordPress-style Page Template Selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      قالب کلی صفحه (WordPress Page Template)
+                    </label>
+                    <select
+                      value={currentPage.pageTheme || 'default'}
+                      onChange={(e) => updateCurrentPage((p) => ({ ...p, pageTheme: e.target.value }), false)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white"
+                    >
+                      {WP_PAGE_THEMES.map((theme) => (
+                        <option key={theme.id} value={theme.id}>
+                          {theme.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {WP_PAGE_THEMES.find((t) => t.id === (currentPage.pageTheme || 'default'))?.desc}
+                    </p>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">عنوان صفحه</label>
                     <input
@@ -1917,22 +2159,21 @@ export default function App() {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">آدرس اختصاصی (Slug)</label>
-                    <input
-                      type="text"
-                      dir="ltr"
-                      value={currentPage.slug}
-                      onChange={(e) => updateCurrentPage((p) => ({ ...p, slug: slugify(e.target.value) }), false)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
-                    />
-                  </div>
-                  {canPublish && (
+
+                  {perms.publishPages && (
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">وضعیت انتشار</label>
                       <select
                         value={currentPage.status}
-                        onChange={(e) => updateCurrentPage((p) => ({ ...p, status: e.target.value }), false)}
+                        onChange={(e) => {
+                          const nextStatus = e.target.value;
+                          if (nextStatus === 'published' && (!currentPage.slug || !currentPage.slug.trim())) {
+                            setSlugErrorHighlight(true);
+                            showToast('ابتدا کادر آدرس اختصاصی (Slug) را پر کنید.');
+                            return;
+                          }
+                          updateCurrentPage((p) => ({ ...p, status: nextStatus }), false);
+                        }}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                       >
                         <option value="draft">پیش‌نویس (Draft)</option>
@@ -1941,6 +2182,7 @@ export default function App() {
                       </select>
                     </div>
                   )}
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">سطح دسترسی صفحه</label>
                     <select
@@ -1953,6 +2195,7 @@ export default function App() {
                       <option value="private">خصوصی (فقط مدیر)</option>
                     </select>
                   </div>
+
                   {currentPage.visibility === 'password' && (
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">رمز عبور مشاهده صفحه</label>
@@ -2377,14 +2620,14 @@ export default function App() {
                 </>
               ) : (
                 <p className="text-xs text-slate-500 text-center py-8">
-                  روی هر المان یا سکشن در صفحه کلیک کنید تا تنظیمات ظاهری، رنگ و فونت آن نمایش داده شود.
+                  روی هر المان کلیک کنید تا رنگ و فونت آن را تغییر دهید، یا از تب «تنظیمات و قالب صفحه» قالب وردپرسی و آدرس Slug صفحه را تعیین کنید.
                 </p>
               )}
             </div>
           </aside>
         </div>
 
-        {/* Media Library Modal inside Editor (Supports both Images and Videos) */}
+        {/* Media Library Modal inside Editor */}
         {mediaPickerCallback && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
@@ -2435,7 +2678,7 @@ export default function App() {
 
   // --- ADMIN DASHBOARD VIEW ---
   const filteredPages = pages.filter((p) => {
-    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.slug.includes(searchQuery.toLowerCase());
+    const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || (p.slug || '').includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -2453,7 +2696,7 @@ export default function App() {
           <div className="truncate">
             <div className="font-bold text-white text-sm truncate">{siteSettings.siteName}</div>
             <div className="text-[11px] text-slate-400">
-              {currentUser.name} ({currentUser.role === 'admin' ? 'مدیر کل' : currentUser.role === 'editor' ? 'ویرایشگر' : 'نویسنده'})
+              {currentUser.name} ({currentUser.role === 'admin' ? 'مدیر کل' : currentUser.role === 'editor' ? 'ویرایشگر' : currentUser.role === 'author' ? 'نویسنده' : 'پشتیبان'})
             </div>
           </div>
         </div>
@@ -2468,41 +2711,47 @@ export default function App() {
             <Layers className="w-4 h-4" />
             {lang === 'fa' ? 'مدیریت صفحات' : 'Pages'}
           </button>
-          <button
-            onClick={() => setActiveTab('templates')}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-              activeTab === 'templates' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            {lang === 'fa' ? 'قالب‌های آماده' : 'Templates'}
-          </button>
-          <button
-            onClick={() => setActiveTab('submissions')}
-            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-              activeTab === 'submissions' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
-            }`}
-          >
-            <span className="flex items-center gap-3">
-              <Inbox className="w-4 h-4" />
-              {lang === 'fa' ? 'فرم‌های ارسالی' : 'Form Submissions'}
-            </span>
-            {submissions.length > 0 && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500 text-white font-bold">
-                {submissions.length}
+          {perms.createPages && (
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                activeTab === 'templates' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" />
+              {lang === 'fa' ? 'قالب‌های آماده' : 'Templates'}
+            </button>
+          )}
+          {perms.viewSubmissions && (
+            <button
+              onClick={() => setActiveTab('submissions')}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                activeTab === 'submissions' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+              }`}
+            >
+              <span className="flex items-center gap-3">
+                <Inbox className="w-4 h-4" />
+                {lang === 'fa' ? 'فرم‌های ارسالی' : 'Form Submissions'}
               </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('media')}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-              activeTab === 'media' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
-            }`}
-          >
-            <FolderOpen className="w-4 h-4" />
-            {lang === 'fa' ? 'کتابخانه رسانه' : 'Media Library'}
-          </button>
-          {isAdmin && (
+              {submissions.length > 0 && (
+                <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500 text-white font-bold">
+                  {submissions.length}
+                </span>
+              )}
+            </button>
+          )}
+          {perms.manageMedia && (
+            <button
+              onClick={() => setActiveTab('media')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                activeTab === 'media' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+              }`}
+            >
+              <FolderOpen className="w-4 h-4" />
+              {lang === 'fa' ? 'کتابخانه رسانه' : 'Media Library'}
+            </button>
+          )}
+          {(perms.manageSettings || perms.manageUsers) && (
             <button
               onClick={() => setActiveTab('admin')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
@@ -2510,7 +2759,7 @@ export default function App() {
               }`}
             >
               <Shield className="w-4 h-4" />
-              {lang === 'fa' ? 'مدیریت و تنظیمات' : 'Admin & Settings'}
+              {lang === 'fa' ? 'مدیریت و سطوح دسترسی' : 'Admin & Permissions'}
             </button>
           )}
         </nav>
@@ -2525,7 +2774,7 @@ export default function App() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem('pb_current_user_v1');
+              localStorage.removeItem('pb_current_user_v2');
               setCurrentUser(null);
             }}
             className="w-full py-2 px-3 rounded-xl text-xs font-medium text-red-400 hover:bg-slate-800 flex items-center justify-center gap-2"
@@ -2547,17 +2796,19 @@ export default function App() {
                 </h1>
                 <p className="text-sm text-slate-500 mt-1">
                   {lang === 'fa'
-                    ? 'صفحات خود را بسازید، طراحی کنید و لینک اختصاصی آن‌ها را برای کاربران ارسال نمایید.'
+                    ? 'صفحات خود را بسازید، قالب وردپرسی و آدرس Slug را وارد کنید و لینک نهایی را منتشر نمایید.'
                     : 'Create, design, and publish standalone web pages.'}
                 </p>
               </div>
-              <button
-                onClick={() => createPageFromTemplate(TEMPLATES[0])}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 shadow-sm self-start"
-              >
-                <Plus className="w-4 h-4" />
-                {lang === 'fa' ? 'ساخت صفحه جدید' : 'Create New Page'}
-              </button>
+              {perms.createPages && (
+                <button
+                  onClick={() => createPageFromTemplate(TEMPLATES[0])}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 shadow-sm self-start"
+                >
+                  <Plus className="w-4 h-4" />
+                  {lang === 'fa' ? 'ساخت صفحه جدید' : 'Create New Page'}
+                </button>
+              )}
             </div>
 
             {/* Search & Filter Bar */}
@@ -2591,7 +2842,7 @@ export default function App() {
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
                     <tr>
                       <th className="p-4 text-start font-bold">عنوان صفحه</th>
-                      <th className="p-4 text-start font-bold">لینک اشتراک‌گذاری</th>
+                      <th className="p-4 text-start font-bold">آدرس (Slug) و لینک</th>
                       <th className="p-4 text-center font-bold">وضعیت</th>
                       <th className="p-4 text-center font-bold">بازدید</th>
                       <th className="p-4 text-end font-bold">عملیات</th>
@@ -2602,22 +2853,34 @@ export default function App() {
                       <tr key={page.id} className="hover:bg-slate-50/70 transition">
                         <td className="p-4">
                           <div className="font-bold text-slate-900">{page.title}</div>
-                          <div className="text-xs text-slate-400 mt-0.5">آخرین ویرایش: {page.updatedAt}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            قالب: {WP_PAGE_THEMES.find((t) => t.id === (page.pageTheme || 'default'))?.name.split('(')[0]}
+                          </div>
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <code dir="ltr" className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700">
-                              ?page={page.slug}
-                            </code>
+                          {page.slug && page.slug.trim() ? (
+                            <div className="flex items-center gap-2">
+                              <code dir="ltr" className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                ?page={page.slug}
+                              </code>
+                              <button
+                                onClick={() => copyShareLink(page)}
+                                className="px-2.5 py-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"
+                                title="کپی لینک کامل برای ارسال به دیگران"
+                              >
+                                <Share2 className="w-3.5 h-3.5" />
+                                کپی لینک
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              onClick={() => copyShareLink(page)}
-                              className="px-2.5 py-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"
-                              title="کپی لینک کامل برای ارسال به دیگران"
+                              onClick={() => openEditor(page.id, true)}
+                              className="text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg flex items-center gap-1"
                             >
-                              <Share2 className="w-3.5 h-3.5" />
-                              کپی لینک
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              تنظیم آدرس Slug (الزامی)
                             </button>
-                          </div>
+                          )}
                         </td>
                         <td className="p-4 text-center">
                           <span
@@ -2635,27 +2898,33 @@ export default function App() {
                         <td className="p-4 text-center font-semibold text-slate-700">{page.views || 0}</td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => openEditor(page.id)}
-                              className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              ویرایش بصری
-                            </button>
-                            <button
-                              onClick={() => setPublicSlug(page.slug)}
-                              className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
-                              title="مشاهده صفحه"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => duplicatePage(page)}
-                              className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
-                              title="کپی صفحه"
-                            >
-                              <Copy className="w-4 h-4" />
-                            </button>
+                            {perms.editPages && (
+                              <button
+                                onClick={() => openEditor(page.id)}
+                                className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                ویرایش بصری
+                              </button>
+                            )}
+                            {page.slug && page.slug.trim() && (
+                              <button
+                                onClick={() => setPublicSlug(page.slug)}
+                                className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                                title="مشاهده صفحه"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </button>
+                            )}
+                            {perms.createPages && (
+                              <button
+                                onClick={() => duplicatePage(page)}
+                                className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                                title="کپی صفحه"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => exportPageJson(page)}
                               className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
@@ -2663,7 +2932,7 @@ export default function App() {
                             >
                               <Download className="w-4 h-4" />
                             </button>
-                            {canDelete && (
+                            {perms.deletePages && (
                               <button
                                 onClick={() => deletePage(page.id)}
                                 className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
@@ -2683,7 +2952,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'templates' && (
+        {activeTab === 'templates' && perms.createPages && (
           <div className="max-w-6xl mx-auto space-y-6">
             <div>
               <h1 className="text-2xl font-black text-slate-900">
@@ -2718,7 +2987,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'submissions' && (
+        {activeTab === 'submissions' && perms.viewSubmissions && (
           <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -2791,7 +3060,7 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'media' && (
+        {activeTab === 'media' && perms.manageMedia && (
           <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -2846,7 +3115,6 @@ export default function App() {
               </label>
             </div>
 
-            {/* Filter & Add External Video/Image URL */}
             <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 {[
@@ -2938,219 +3206,288 @@ export default function App() {
           </div>
         )}
 
-        {activeTab === 'admin' && isAdmin && (
+        {activeTab === 'admin' && (perms.manageSettings || perms.manageUsers) && (
           <div className="max-w-6xl mx-auto space-y-8">
             <div>
-              <h1 className="text-2xl font-black text-slate-900">پنل مدیریت کل، کاربران و تنظیمات وب‌سایت</h1>
+              <h1 className="text-2xl font-black text-slate-900">پنل مدیریت مدیران، سطوح دسترسی و تنظیمات</h1>
               <p className="text-sm text-slate-500 mt-1">
-                کاربران جدید با سطوح دسترسی مختلف تعریف کنید و تنظیمات عمومی وب‌سایت را پیکربندی نمایید.
+                مدیران جدید تعریف کنید، مجوزهای دقیق هر کاربر را به صورت تکی تنظیم کنید و پیکربندی وب‌سایت را تغییر دهید.
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Website General Settings Card */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <Sliders className="w-5 h-5 text-blue-600" />
-                  <h2 className="font-bold text-lg text-slate-900">تنظیمات عمومی وب‌سایت</h2>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">نام پلتفرم / وب‌سایت</label>
-                  <input
-                    type="text"
-                    value={siteSettings.siteName}
-                    onChange={(e) => setSiteSettings((s) => ({ ...s, siteName: e.target.value }))}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">فونت پیش‌فرض کل سایت و صفحات</label>
-                  <select
-                    value={siteSettings.defaultFont}
-                    onChange={(e) => setSiteSettings((s) => ({ ...s, defaultFont: e.target.value }))}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white"
-                  >
-                    {FONT_OPTIONS.filter((f) => f.value !== '').map((f) => (
-                      <option key={f.value} value={f.value}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">آدرس آیکون مرورگر (Favicon URL)</label>
-                  <input
-                    type="text"
-                    dir="ltr"
-                    value={siteSettings.faviconUrl}
-                    onChange={(e) => setSiteSettings((s) => ({ ...s, faviconUrl: e.target.value }))}
-                    placeholder="https://example.com/favicon.png"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">متن کپی‌رایت فوتر صفحات عمومی</label>
-                  <input
-                    type="text"
-                    value={siteSettings.footerText}
-                    onChange={(e) => setSiteSettings((s) => ({ ...s, footerText: e.target.value }))}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">کد رهگیری و آمارگیر (Google Analytics / Script)</label>
-                  <textarea
-                    rows={2}
-                    dir="ltr"
-                    value={siteSettings.analyticsCode}
-                    onChange={(e) => setSiteSettings((s) => ({ ...s, analyticsCode: e.target.value }))}
-                    placeholder="G-XXXXXXXXXX"
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => showToast('تنظیمات وب‌سایت با موفقیت ذخیره شد')}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition"
-                >
-                  ذخیره تنظیمات وب‌سایت
-                </button>
-              </div>
-
-              {/* User & Role Management Card */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
-                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  <h2 className="font-bold text-lg text-slate-900">مدیریت کاربران و سطوح دسترسی</h2>
-                </div>
-
-                {/* Add New User Form */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (!newUserName.trim() || !newUserUsername.trim() || !newUserPass.trim()) return;
-                    if (users.some((u) => u.username.toLowerCase() === newUserUsername.trim().toLowerCase())) {
-                      showToast('این نام کاربری قبلاً ثبت شده است.');
-                      return;
-                    }
-                    setUsers((prev) => [
-                      ...prev,
-                      {
-                        id: `u-${generateId()}`,
-                        name: newUserName.trim(),
-                        username: newUserUsername.trim(),
-                        password: newUserPass,
-                        role: newUserRole,
-                        createdAt: new Date().toLocaleDateString('fa-IR')
-                      }
-                    ]);
-                    setNewUserName('');
-                    setNewUserUsername('');
-                    setNewUserPass('');
-                    showToast('کاربر جدید با موفقیت ایجاد شد');
-                  }}
-                  className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3"
-                >
-                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <UserPlus className="w-4 h-4 text-blue-600" />
-                    افزودن کاربر جدید
+              {perms.manageSettings && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 self-start">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                    <Sliders className="w-5 h-5 text-blue-600" />
+                    <h2 className="font-bold text-lg text-slate-900">تنظیمات عمومی وب‌سایت</h2>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5">
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">نام پلتفرم / وب‌سایت</label>
                     <input
                       type="text"
-                      required
-                      value={newUserName}
-                      onChange={(e) => setNewUserName(e.target.value)}
-                      placeholder="نام و نام خانوادگی"
-                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      value={siteSettings.siteName}
+                      onChange={(e) => setSiteSettings((s) => ({ ...s, siteName: e.target.value }))}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
                     />
-                    <input
-                      type="text"
-                      required
-                      dir="ltr"
-                      value={newUserUsername}
-                      onChange={(e) => setNewUserUsername(e.target.value)}
-                      placeholder="نام کاربری (انگلیسی)"
-                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
-                    />
-                    <input
-                      type="text"
-                      required
-                      dir="ltr"
-                      value={newUserPass}
-                      onChange={(e) => setNewUserPass(e.target.value)}
-                      placeholder="رمز عبور"
-                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
-                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">فونت پیش‌فرض کل سایت و صفحات</label>
                     <select
-                      value={newUserRole}
-                      onChange={(e) => setNewUserRole(e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white font-medium"
+                      value={siteSettings.defaultFont}
+                      onChange={(e) => setSiteSettings((s) => ({ ...s, defaultFont: e.target.value }))}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white"
                     >
-                      <option value="admin">مدیر کل (دسترسی کامل)</option>
-                      <option value="editor">ویرایشگر (ساخت و انتشار)</option>
-                      <option value="author">نویسنده (فقط پیش‌نویس)</option>
+                      {FONT_OPTIONS.filter((f) => f.value !== '').map((f) => (
+                        <option key={f.value} value={f.value}>
+                          {f.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  <button
-                    type="submit"
-                    className="w-full py-2 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-lg text-xs transition"
-                  >
-                    ثبت کاربر و اعطای دسترسی
-                  </button>
-                </form>
 
-                {/* Users List */}
-                <div className="space-y-2.5">
-                  {users.map((u) => (
-                    <div
-                      key={u.id}
-                      className="p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2"
-                    >
-                      <div>
-                        <div className="font-bold text-sm text-slate-900">{u.name}</div>
-                        <div className="text-xs text-slate-500">
-                          نام کاربری: <code className="bg-slate-100 px-1.5 py-0.5 rounded">{u.username}</code> | رمز:{' '}
-                          <code className="bg-slate-100 px-1.5 py-0.5 rounded">{u.password}</code>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={u.role}
-                          disabled={u.username === 'admin'}
-                          onChange={(e) =>
-                            setUsers((prev) =>
-                              prev.map((item) => (item.id === u.id ? { ...item, role: e.target.value } : item))
-                            )
-                          }
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold bg-slate-50"
-                        >
-                          <option value="admin">مدیر کل</option>
-                          <option value="editor">ویرایشگر</option>
-                          <option value="author">نویسنده</option>
-                        </select>
-                        {u.username !== 'admin' && (
-                          <button
-                            onClick={() => {
-                              setUsers((prev) => prev.filter((item) => item.id !== u.id));
-                              showToast('کاربر حذف شد');
-                            }}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">آدرس آیکون مرورگر (Favicon URL)</label>
+                    <input
+                      type="text"
+                      dir="ltr"
+                      value={siteSettings.faviconUrl}
+                      onChange={(e) => setSiteSettings((s) => ({ ...s, faviconUrl: e.target.value }))}
+                      placeholder="https://example.com/favicon.png"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">متن کپی‌رایت فوتر صفحات عمومی</label>
+                    <input
+                      type="text"
+                      value={siteSettings.footerText}
+                      onChange={(e) => setSiteSettings((s) => ({ ...s, footerText: e.target.value }))}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">کد رهگیری و آمارگیر (Google Analytics / Script)</label>
+                    <textarea
+                      rows={2}
+                      dir="ltr"
+                      value={siteSettings.analyticsCode}
+                      onChange={(e) => setSiteSettings((s) => ({ ...s, analyticsCode: e.target.value }))}
+                      placeholder="G-XXXXXXXXXX"
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => showToast('تنظیمات وب‌سایت با موفقیت ذخیره شد')}
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition"
+                  >
+                    ذخیره تنظیمات وب‌سایت
+                  </button>
+                </div>
+              )}
+
+              {/* Granular User & Role Management Card */}
+              {perms.manageUsers && (
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <h2 className="font-bold text-lg text-slate-900">مدیریت مدیران و سطوح دسترسی پیشرفته</h2>
+                  </div>
+
+                  {/* Add New User Form with Granular Checkboxes */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newUserName.trim() || !newUserUsername.trim() || !newUserPass.trim()) return;
+                      if (users.some((u) => u.username.toLowerCase() === newUserUsername.trim().toLowerCase())) {
+                        showToast('این نام کاربری قبلاً ثبت شده است.');
+                        return;
+                      }
+                      setUsers((prev) => [
+                        ...prev,
+                        {
+                          id: `u-${generateId()}`,
+                          name: newUserName.trim(),
+                          username: newUserUsername.trim(),
+                          password: newUserPass,
+                          role: newUserRole,
+                          permissions: { ...newUserPerms },
+                          createdAt: new Date().toLocaleDateString('fa-IR')
+                        }
+                      ]);
+                      setNewUserName('');
+                      setNewUserUsername('');
+                      setNewUserPass('');
+                      showToast('مدیر / کاربر جدید با سطوح دسترسی انتخابی ایجاد شد');
+                    }}
+                    className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3"
+                  >
+                    <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                      <UserPlus className="w-4 h-4 text-blue-600" />
+                      تعریف مدیر یا کاربر جدید
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <input
+                        type="text"
+                        required
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        placeholder="نام و نام خانوادگی"
+                        className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      />
+                      <input
+                        type="text"
+                        required
+                        dir="ltr"
+                        value={newUserUsername}
+                        onChange={(e) => setNewUserUsername(e.target.value)}
+                        placeholder="نام کاربری (انگلیسی)"
+                        className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      />
+                      <input
+                        type="text"
+                        required
+                        dir="ltr"
+                        value={newUserPass}
+                        onChange={(e) => setNewUserPass(e.target.value)}
+                        placeholder="رمز عبور"
+                        className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      />
+                      <select
+                        value={newUserRole}
+                        onChange={(e) => {
+                          const r = e.target.value;
+                          setNewUserRole(r);
+                          setNewUserPerms({ ...ROLE_PRESETS[r] });
+                        }}
+                        className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white font-medium"
+                      >
+                        <option value="admin">نقش: مدیر کل</option>
+                        <option value="editor">نقش: ویرایشگر</option>
+                        <option value="author">نقش: نویسنده</option>
+                        <option value="support">نقش: پشتیبان فرم‌ها</option>
+                      </select>
+                    </div>
+
+                    {/* Granular Checkboxes */}
+                    <div className="pt-2 border-t border-slate-200">
+                      <div className="text-[11px] font-bold text-slate-600 mb-2">تنظیم دقیق مجوزهای این کاربر:</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {PERMISSION_LABELS.map((perm) => (
+                          <label key={perm.key} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={!!newUserPerms[perm.key]}
+                              onChange={(e) =>
+                                setNewUserPerms((prev) => ({ ...prev, [perm.key]: e.target.checked }))
+                              }
+                              className="rounded text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>{perm.label}</span>
+                          </label>
+                        ))}
                       </div>
                     </div>
-                  ))}
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-lg text-xs transition"
+                    >
+                      ثبت کاربر و ذخیره سطوح دسترسی
+                    </button>
+                  </form>
+
+                  {/* Users List with Expandable Permission Editor */}
+                  <div className="space-y-3">
+                    {users.map((u) => {
+                      const uPerms = u.permissions || ROLE_PRESETS[u.role] || ROLE_PRESETS.author;
+                      const activeCount = Object.values(uPerms).filter(Boolean).length;
+                      const isExpanded = expandedUserPermId === u.id;
+
+                      return (
+                        <div key={u.id} className="p-3.5 rounded-xl border border-slate-200 space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <div className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                                <span>{u.name}</span>
+                                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
+                                  {activeCount} از ۸ مجوز فعال
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-500 mt-0.5">
+                                نام کاربری: <code className="bg-slate-100 px-1.5 py-0.5 rounded">{u.username}</code> | رمز:{' '}
+                                <code className="bg-slate-100 px-1.5 py-0.5 rounded">{u.password}</code>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {u.username !== 'admin' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedUserPermId(isExpanded ? null : u.id)}
+                                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1"
+                                >
+                                  <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
+                                  مجوزها
+                                </button>
+                              )}
+                              {u.username !== 'admin' && (
+                                <button
+                                  onClick={() => {
+                                    setUsers((prev) => prev.filter((item) => item.id !== u.id));
+                                    showToast('کاربر حذف شد');
+                                  }}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Expandable Granular Permission Toggles */}
+                          {isExpanded && u.username !== 'admin' && (
+                            <div className="pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2 bg-slate-50/80 p-3 rounded-lg">
+                              {PERMISSION_LABELS.map((perm) => (
+                                <label key={perm.key} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={!!uPerms[perm.key]}
+                                    onChange={(e) => {
+                                      const checked = e.target.checked;
+                                      setUsers((prev) =>
+                                        prev.map((item) =>
+                                          item.id === u.id
+                                            ? {
+                                                ...item,
+                                                permissions: {
+                                                  ...(item.permissions || ROLE_PRESETS[item.role]),
+                                                  [perm.key]: checked
+                                                }
+                                              }
+                                            : item
+                                        )
+                                      );
+                                    }}
+                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span>{perm.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
