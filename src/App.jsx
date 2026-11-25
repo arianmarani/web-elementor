@@ -2,11 +2,52 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus, Trash2, Copy, Eye, Edit3, Globe, Lock, Search, Layout, Type,
   Image as ImageIcon, Video, Square, Columns, MoveUp, MoveDown, Undo2, Redo2,
-  Monitor, Tablet, Smartphone, Settings, FolderOpen, Download, Check,
+  Monitor, Tablet, Smartphone, FolderOpen, Download,
   ExternalLink, LogOut, LogIn, Sparkles, Layers, Code, List, Table as TableIcon,
-  Minus, FileText, Share2, KeyRound, ArrowRight, Save, X, CheckCircle2,
-  AlertCircle, Palette, AlignLeft, AlignCenter, AlignRight, GripVertical
+  Minus, FileText, Share2, KeyRound, ArrowRight, X, CheckCircle2,
+  AlignLeft, AlignCenter, AlignRight, Mic, Volume2, Inbox, StopCircle, Upload
 } from 'lucide-react';
+
+// --- Unicode-safe Base64 Encode/Decode for Universal Shareable Links ---
+const encodePageData = (pageObj) => {
+  try {
+    const minimal = {
+      id: pageObj.id,
+      title: pageObj.title,
+      slug: pageObj.slug,
+      status: 'published',
+      visibility: pageObj.visibility || 'public',
+      password: pageObj.password || '',
+      metaTitle: pageObj.metaTitle || pageObj.title,
+      metaDescription: pageObj.metaDescription || '',
+      direction: pageObj.direction || 'rtl',
+      sections: pageObj.sections
+    };
+    const json = JSON.stringify(minimal);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  } catch (e) {
+    return '';
+  }
+};
+
+const decodePageData = (encodedStr) => {
+  try {
+    const binary = atob(encodedStr);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const json = new TextDecoder().decode(bytes);
+    return JSON.parse(json);
+  } catch (e) {
+    return null;
+  }
+};
 
 // --- Initial Templates (9 Professional Templates) ---
 const TEMPLATES = [
@@ -36,7 +77,7 @@ const TEMPLATES = [
           {
             id: 'w-2',
             type: 'text',
-            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید اضافه کنید یا روی هر بخش کلیک کرده و آن را ویرایش نمایید.',
+            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید (متن، تصویر، ویدئو، صدا و ویس، فرم و...) اضافه کنید.',
             align: 'center',
             color: '#475569',
             fontSize: 16,
@@ -593,6 +634,7 @@ const WIDGET_TYPES = [
   { type: 'text', label: { fa: 'متن پیشرفته', en: 'Rich Text' }, icon: FileText },
   { type: 'image', label: { fa: 'تصویر', en: 'Image' }, icon: ImageIcon },
   { type: 'video', label: { fa: 'ویدئو', en: 'Video' }, icon: Video },
+  { type: 'audio', label: { fa: 'صدا و ویس', en: 'Audio / Voice' }, icon: Mic },
   { type: 'button', label: { fa: 'دکمه و لینک', en: 'Button' }, icon: Square },
   { type: 'card', label: { fa: 'کارت محتوایی', en: 'Content Card' }, icon: Layout },
   { type: 'gallery', label: { fa: 'گالری تصاویر', en: 'Image Gallery' }, icon: Columns },
@@ -617,8 +659,9 @@ const slugify = (text) => {
 };
 
 // --- Standalone Widget Renderer (Used in Canvas, Preview, and Public View) ---
-function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang }) {
+function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit }) {
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [formValues, setFormValues] = useState({});
 
   const wrapperStyle = {
     backgroundColor: widget.bgColor || 'transparent',
@@ -703,6 +746,37 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang }) {
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
                 {lang === 'fa' ? 'آدرس ویدئو یا کد Embed را در تنظیمات وارد کنید' : 'Enter Video URL in settings'}
+              </div>
+            )}
+          </div>
+        );
+      case 'audio':
+        return (
+          <div
+            style={{
+              backgroundColor: widget.bgColor && widget.bgColor !== 'transparent' ? widget.bgColor : '#f1f5f9',
+              borderRadius: `${widget.borderRadius ?? 16}px`
+            }}
+            className="p-4 border border-slate-200 flex flex-col gap-2.5 max-w-xl mx-auto"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                <Volume2 className="w-4 h-4" />
+              </div>
+              <div className="text-start">
+                <div className="text-sm font-bold text-slate-900">
+                  {widget.title || (lang === 'fa' ? 'فایل صوتی / ویس' : 'Audio / Voice Message')}
+                </div>
+                {widget.caption && <div className="text-xs text-slate-500">{widget.caption}</div>}
+              </div>
+            </div>
+            {widget.url ? (
+              <audio controls src={widget.url} className="w-full h-10" />
+            ) : (
+              <div className="text-xs text-slate-500 bg-white p-3 rounded-xl border border-dashed border-slate-300 text-center">
+                {lang === 'fa'
+                  ? 'روی این باکس کلیک کنید تا از پنل سمت چپ فایل صوتی آپلود کنید یا با میکروفون ویس ضبط نمایید'
+                  : 'Click to upload audio or record voice'}
               </div>
             )}
           </div>
@@ -827,13 +901,18 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang }) {
             {formSubmitted ? (
               <div className="p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5" />
-                {lang === 'fa' ? 'اطلاعات شما با موفقیت ثبت شد!' : 'Submitted successfully!'}
+                {lang === 'fa' ? 'اطلاعات شما با موفقیت ثبت و برای مدیر ارسال شد!' : 'Submitted successfully!'}
               </div>
             ) : (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!isEditing) setFormSubmitted(true);
+                  if (!isEditing) {
+                    if (onFormSubmit) {
+                      onFormSubmit(widget.title || 'فرم بدون عنوان', formValues);
+                    }
+                    setFormSubmitted(true);
+                  }
                 }}
                 className="space-y-3"
               >
@@ -843,6 +922,8 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang }) {
                     <input
                       type="text"
                       required
+                      value={formValues[f] || ''}
+                      onChange={(e) => setFormValues((prev) => ({ ...prev, [f]: e.target.value }))}
                       placeholder={f}
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
@@ -898,7 +979,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang }) {
 }
 
 // --- Public Standalone Page Viewer ---
-function PublicPageView({ page, onIncrementView, onBackToAdmin }) {
+function PublicPageView({ page, onIncrementView, onSaveSubmission, onBackToAdmin }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState('');
@@ -924,7 +1005,7 @@ function PublicPageView({ page, onIncrementView, onBackToAdmin }) {
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-2">این صفحه در دسترس نیست</h1>
         <p className="text-slate-600 max-w-md mb-6">
-          ممکن است لینک اشتباه باشد، صفحه هنوز منتشر نشده باشد یا دسترسی به آن خصوصی شده باشد.
+          ممکن است لینک ناقص کپی شده باشد، صفحه هنوز منتشر نشده باشد یا دسترسی به آن خصوصی شده باشد.
         </p>
         <button
           onClick={onBackToAdmin}
@@ -999,7 +1080,23 @@ function PublicPageView({ page, onIncrementView, onBackToAdmin }) {
             }`}
           >
             {sec.widgets.map((w) => (
-              <WidgetRenderer key={w.id} widget={w} isEditing={false} lang={page.direction === 'ltr' ? 'en' : 'fa'} />
+              <WidgetRenderer
+                key={w.id}
+                widget={w}
+                isEditing={false}
+                lang={page.direction === 'ltr' ? 'en' : 'fa'}
+                onFormSubmit={(formTitle, values) =>
+                  onSaveSubmission({
+                    id: `sub-${generateId()}`,
+                    pageId: page.id,
+                    pageTitle: page.title,
+                    pageSlug: page.slug,
+                    formTitle,
+                    values,
+                    submittedAt: new Date().toLocaleString('fa-IR')
+                  })
+                }
+              />
             ))}
           </div>
         </section>
@@ -1013,14 +1110,15 @@ export default function App() {
   const [lang, setLang] = useState('fa');
   const dir = lang === 'fa' ? 'rtl' : 'ltr';
 
-  // Auth State
+  // Auth State (Empty by default as requested)
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('pb_auth') === 'true';
   });
-  const [loginPass, setLoginPass] = useState('admin123');
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // Pages & Media State
+  // Pages, Submissions & Media State
   const [pages, setPages] = useState(() => {
     const saved = localStorage.getItem('pb_pages_v1');
     if (saved) return JSON.parse(saved);
@@ -1043,6 +1141,11 @@ export default function App() {
     ];
   });
 
+  const [submissions, setSubmissions] = useState(() => {
+    const saved = localStorage.getItem('pb_submissions_v1');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [media, setMedia] = useState(() => {
     const saved = localStorage.getItem('pb_media_v1');
     return saved ? JSON.parse(saved) : INITIAL_MEDIA;
@@ -1053,16 +1156,26 @@ export default function App() {
   }, [pages]);
 
   useEffect(() => {
+    localStorage.setItem('pb_submissions_v1', JSON.stringify(submissions));
+  }, [submissions]);
+
+  useEffect(() => {
     localStorage.setItem('pb_media_v1', JSON.stringify(media));
   }, [media]);
 
-  // Routing / Active View
+  // Routing / Active View (Supports both local slug AND self-contained encoded URL data)
   const [publicSlug, setPublicSlug] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('page');
   });
 
-  const [activeTab, setActiveTab] = useState('pages'); // 'pages' | 'templates' | 'media' | 'editor'
+  const [urlEncodedPage, setUrlEncodedPage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const dataParam = params.get('d');
+    return dataParam ? decodePageData(dataParam) : null;
+  });
+
+  const [activeTab, setActiveTab] = useState('pages'); // 'pages' | 'templates' | 'submissions' | 'media' | 'editor'
   const [editingPageId, setEditingPageId] = useState(null);
 
   // Dashboard Filters
@@ -1073,35 +1186,47 @@ export default function App() {
   // Editor State
   const [selectedSectionId, setSelectedSectionId] = useState(null);
   const [selectedWidgetId, setSelectedWidgetId] = useState(null);
-  const [viewport, setViewport] = useState('desktop'); // 'desktop' | 'tablet' | 'mobile'
-  const [editorRightTab, setEditorRightTab] = useState('style'); // 'style' | 'settings'
+  const [viewport, setViewport] = useState('desktop');
+  const [editorRightTab, setEditorRightTab] = useState('style');
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [mediaPickerCallback, setMediaPickerCallback] = useState(null);
 
+  // Voice Recorder State inside Editor
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const showToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3000);
+    setTimeout(() => setToast(''), 3500);
   };
 
   // Public Route Handler
-  if (publicSlug) {
-    const targetPage = pages.find((p) => p.slug === publicSlug);
+  if (publicSlug || urlEncodedPage) {
+    const targetPage =
+      pages.find((p) => p.slug === publicSlug) ||
+      urlEncodedPage;
+
     return (
       <PublicPageView
         page={targetPage}
         onIncrementView={(id) => {
           setPages((prev) => prev.map((p) => (p.id === id ? { ...p, views: (p.views || 0) + 1 } : p)));
         }}
+        onSaveSubmission={(sub) => {
+          setSubmissions((prev) => [sub, ...prev]);
+        }}
         onBackToAdmin={() => {
           window.history.pushState({}, '', window.location.pathname);
           setPublicSlug(null);
+          setUrlEncodedPage(null);
         }}
       />
     );
   }
 
-  // Login Screen
+  // Login Screen (Empty inputs by default)
   if (!isAuthenticated) {
     return (
       <div dir="rtl" className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
@@ -1118,36 +1243,39 @@ export default function App() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (loginPass === 'admin123') {
+              if (loginUser.trim() === 'admin' && loginPass === 'admin123') {
                 localStorage.setItem('pb_auth', 'true');
                 setIsAuthenticated(true);
+                setLoginError('');
               } else {
-                setLoginError('رمز عبور اشتباه است (رمز پیش‌فرض: admin123)');
+                setLoginError('نام کاربری یا رمز عبور اشتباه است.');
               }
             }}
             className="space-y-4"
           >
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">نام کاربری مدیر</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">نام کاربری</label>
               <input
                 type="text"
-                defaultValue="admin"
-                disabled
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                رمز عبور <span className="text-blue-600 font-normal">(پیش‌فرض: admin123)</span>
-              </label>
-              <input
-                type="password"
-                value={loginPass}
-                onChange={(e) => setLoginPass(e.target.value)}
+                autoComplete="off"
+                value={loginUser}
+                onChange={(e) => setLoginUser(e.target.value)}
+                placeholder="نام کاربری را وارد کنید"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
-            {loginError && <p className="text-xs text-red-600">{loginError}</p>}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">رمز عبور</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={loginPass}
+                onChange={(e) => setLoginPass(e.target.value)}
+                placeholder="رمز عبور را وارد کنید"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+              />
+            </div>
+            {loginError && <p className="text-xs text-red-600 font-medium">{loginError}</p>}
             <button
               type="submit"
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition"
@@ -1212,14 +1340,17 @@ export default function App() {
     showToast(lang === 'fa' ? 'صفحه حذف شد' : 'Page deleted');
   };
 
-  const getPublicUrl = (slug) => {
-    return `${window.location.origin}${window.location.pathname}?page=${slug}`;
+  // Builds a universally shareable URL containing the page snapshot so anyone can open it anywhere
+  const getPublicUrl = (pageObj) => {
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const encoded = encodePageData(pageObj);
+    return encoded ? `${base}?page=${pageObj.slug}&d=${encodeURIComponent(encoded)}` : `${base}?page=${pageObj.slug}`;
   };
 
-  const copyShareLink = (slug) => {
-    const url = getPublicUrl(slug);
+  const copyShareLink = (pageObj) => {
+    const url = getPublicUrl(pageObj);
     navigator.clipboard.writeText(url);
-    showToast(lang === 'fa' ? 'لینک اشتراک‌گذاری در حافظه کپی شد!' : 'Shareable link copied!');
+    showToast(lang === 'fa' ? 'لینک کامل و قابل اشتراک‌گذاری کپی شد! می‌توانید به هر کسی ارسال کنید.' : 'Shareable link copied!');
   };
 
   const exportPageJson = (page) => {
@@ -1296,6 +1427,7 @@ export default function App() {
       text: { content: 'متن دلخواه خود را اینجا بنویسید و از پنل کناری رنگ و اندازه آن را تغییر دهید.', fontSize: 16, color: '#334155', align: 'right' },
       image: { url: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=900&q=80', caption: 'توضیح تصویر', borderRadius: 12 },
       video: { url: '' },
+      audio: { title: 'پیام صوتی / ویس', caption: 'برای پخش روی دکمه Play کلیک کنید', url: '', bgColor: '#f1f5f9', borderRadius: 16 },
       button: { label: 'دکمه اقدام', url: '#', bgColor: '#2563eb', color: '#ffffff', fontSize: 16, padding: 12, borderRadius: 10, align: 'center' },
       card: { title: 'عنوان کارت', content: 'توضیحات مختصر درباره این کارت محتوایی', bgColor: '#f8fafc', color: '#0f172a', padding: 24, borderRadius: 16 },
       gallery: { images: INITIAL_MEDIA.map((m) => m.url) },
@@ -1339,6 +1471,40 @@ export default function App() {
           : s
       )
     }));
+  };
+
+  // Start/Stop Microphone Voice Recording for Audio Widget
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          updateSelectedWidget({ url: reader.result });
+          showToast('ویس با موفقیت ضبط و روی المان قرار گرفت!');
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      showToast('دسترسی به میکروفون توسط مرورگر مسدود شده است.');
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
   };
 
   const deleteWidget = (secId, wId) => {
@@ -1447,7 +1613,11 @@ export default function App() {
           {/* Publish & Share Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setPublicSlug(currentPage.slug)}
+              onClick={() => {
+                const publishedObj = { ...currentPage, status: 'published' };
+                updateCurrentPage(() => publishedObj, false);
+                setPublicSlug(publishedObj.slug);
+              }}
               className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5"
             >
               <Eye className="w-3.5 h-3.5" />
@@ -1455,23 +1625,15 @@ export default function App() {
             </button>
             <button
               onClick={() => {
-                updateCurrentPage((p) => ({ ...p, status: 'published' }), false);
-                showToast(lang === 'fa' ? 'صفحه با موفقیت منتشر شد!' : 'Page published!');
+                const publishedObj = { ...currentPage, status: 'published' };
+                updateCurrentPage(() => publishedObj, false);
+                copyShareLink(publishedObj);
               }}
               className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1.5 shadow-sm"
             >
               <Globe className="w-3.5 h-3.5" />
-              {lang === 'fa' ? 'انتشار صفحه' : 'Publish'}
+              {lang === 'fa' ? 'انتشار و کپی لینک' : 'Publish & Copy Link'}
             </button>
-            {currentPage.status === 'published' && (
-              <button
-                onClick={() => copyShareLink(currentPage.slug)}
-                className="p-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg"
-                title="کپی لینک اشتراک‌گذاری"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
-            )}
           </div>
         </header>
 
@@ -1683,9 +1845,6 @@ export default function App() {
                       onChange={(e) => updateCurrentPage((p) => ({ ...p, slug: slugify(e.target.value) }), false)}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
-                    <p className="text-[11px] text-slate-500 mt-1 break-all" dir="ltr">
-                      {getPublicUrl(currentPage.slug)}
-                    </p>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">وضعیت انتشار</label>
@@ -1748,6 +1907,85 @@ export default function App() {
                   <div className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
                     ویرایش المان: {selectedWidget.type}
                   </div>
+
+                  {/* Audio / Voice Controls */}
+                  {selectedWidget.type === 'audio' && (
+                    <div className="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">عنوان فایل صوتی</label>
+                        <input
+                          type="text"
+                          value={selectedWidget.title || ''}
+                          onChange={(e) => updateSelectedWidget({ title: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">توضیح کوتاه</label>
+                        <input
+                          type="text"
+                          value={selectedWidget.caption || ''}
+                          onChange={(e) => updateSelectedWidget({ caption: e.target.value })}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">آپلود فایل صوتی (MP3/WAV)</label>
+                        <label className="w-full py-2 px-3 bg-white border border-slate-300 hover:border-blue-500 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="w-3.5 h-3.5 text-blue-600" />
+                          انتخاب فایل صوتی از دستگاه
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                updateSelectedWidget({ url: reader.result, title: file.name });
+                                showToast('فایل صوتی بارگذاری شد');
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">ضبط ویس مستقیم با میکروفون</label>
+                        {!isRecording ? (
+                          <button
+                            type="button"
+                            onClick={startVoiceRecording}
+                            className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+                          >
+                            <Mic className="w-3.5 h-3.5" />
+                            شروع ضبط ویس
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={stopVoiceRecording}
+                            className="w-full py-2 bg-slate-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 animate-pulse"
+                          >
+                            <StopCircle className="w-3.5 h-3.5 text-rose-400" />
+                            توقف و ذخیره ویس
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">یا لینک مستقیم فایل صوتی (URL)</label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          value={selectedWidget.url || ''}
+                          onChange={(e) => updateSelectedWidget({ url: e.target.value })}
+                          placeholder="https://example.com/voice.mp3"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Content Controls based on widget type */}
                   {['heading', 'subheading', 'text', 'html'].includes(selectedWidget.type) && (
@@ -2110,6 +2348,22 @@ export default function App() {
             {lang === 'fa' ? 'قالب‌های آماده' : 'Templates'}
           </button>
           <button
+            onClick={() => setActiveTab('submissions')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+              activeTab === 'submissions' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+            }`}
+          >
+            <span className="flex items-center gap-3">
+              <Inbox className="w-4 h-4" />
+              {lang === 'fa' ? 'فرم‌های ارسالی' : 'Form Submissions'}
+            </span>
+            {submissions.length > 0 && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-500 text-white font-bold">
+                {submissions.length}
+              </span>
+            )}
+          </button>
+          <button
             onClick={() => setActiveTab('media')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
               activeTab === 'media' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
@@ -2152,7 +2406,7 @@ export default function App() {
                 </h1>
                 <p className="text-sm text-slate-500 mt-1">
                   {lang === 'fa'
-                    ? 'صفحات خود را بسازید، طراحی کنید و لینک اختصاصی آن‌ها را منتشر نمایید.'
+                    ? 'صفحات خود را بسازید، طراحی کنید و لینک اختصاصی آن‌ها را برای کاربران ارسال نمایید.'
                     : 'Create, design, and publish standalone web pages.'}
                 </p>
               </div>
@@ -2189,14 +2443,14 @@ export default function App() {
               </select>
             </div>
 
-            {/* Pages Table / Cards */}
+            {/* Pages Table */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
                     <tr>
                       <th className="p-4 text-start font-bold">عنوان صفحه</th>
-                      <th className="p-4 text-start font-bold">لینک اختصاصی</th>
+                      <th className="p-4 text-start font-bold">لینک اشتراک‌گذاری</th>
                       <th className="p-4 text-center font-bold">وضعیت</th>
                       <th className="p-4 text-center font-bold">بازدید</th>
                       <th className="p-4 text-end font-bold">عملیات</th>
@@ -2215,11 +2469,12 @@ export default function App() {
                               ?page={page.slug}
                             </code>
                             <button
-                              onClick={() => copyShareLink(page.slug)}
-                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                              title="کپی لینک کامل"
+                              onClick={() => copyShareLink(page)}
+                              className="px-2.5 py-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"
+                              title="کپی لینک کامل برای ارسال به دیگران"
                             >
                               <Share2 className="w-3.5 h-3.5" />
+                              کپی لینک
                             </button>
                           </div>
                         </td>
@@ -2317,6 +2572,79 @@ export default function App() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'submissions' && (
+          <div className="max-w-6xl mx-auto space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-black text-slate-900">فرم‌ها و پیام‌های دریافتی از کاربران</h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  تمام اطلاعاتی که بازدیدکنندگان در فرم‌های صفحات منتشرشده وارد و ارسال می‌کنند در این بخش نمایش داده می‌شود.
+                </p>
+              </div>
+              {submissions.length > 0 && (
+                <button
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(submissions, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'form-submissions.json';
+                    a.click();
+                  }}
+                  className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 self-start"
+                >
+                  <Download className="w-4 h-4" />
+                  خروجی فایل اطلاعات
+                </button>
+              )}
+            </div>
+
+            {submissions.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="font-bold text-slate-800">هنوز هیچ فرمی ثبت نشده است</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  هنگامی که کاربران در یکی از صفحات شما فرم ثبت‌نام یا تماس را پر کنند، اطلاعات آن اینجا نمایش داده می‌شود.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {submissions.map((sub) => (
+                  <div key={sub.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+                    <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                      <div>
+                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">
+                          صفحه: {sub.pageTitle}
+                        </span>
+                        <h3 className="font-bold text-slate-900 mt-1.5 text-sm">{sub.formTitle}</h3>
+                        <span className="text-[11px] text-slate-400">{sub.submittedAt}</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSubmissions((prev) => prev.filter((item) => item.id !== sub.id));
+                          showToast('رکورد حذف شد');
+                        }}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                        title="حذف"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {Object.entries(sub.values || {}).map(([fieldLabel, fieldVal], idx) => (
+                        <div key={idx} className="bg-slate-50 px-3 py-2 rounded-xl text-xs flex flex-col gap-0.5">
+                          <span className="text-slate-400 font-semibold">{fieldLabel}:</span>
+                          <span className="text-slate-900 font-bold text-sm">{fieldVal}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
