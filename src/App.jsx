@@ -8,7 +8,7 @@ import {
   AlignRight, Mic, Volume2, Inbox, StopCircle, Upload, Users, Shield,
   Sliders, Film, UserPlus, AlertTriangle, CheckSquare, Paintbrush,
   BarChart2, ChevronDown, DollarSign, MessageSquare, Hash,
-  Activity, Clock, AlertCircle, MapPin
+  Activity, Clock, AlertCircle, MapPin, GripVertical
 } from 'lucide-react';
 
 // --- Nexora Brand Logo (Embedded Vector for Favicon & UI) ---
@@ -16,11 +16,11 @@ const NEXORA_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#120638"/><stop offset="100%" stop-color="#07021c"/></linearGradient><linearGradient id="r1" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#6366f1"/></linearGradient><linearGradient id="r2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e879f9"/><stop offset="50%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient></defs><rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/><path d="M122 340C122 230 155 170 210 170v75c-35 0-45 40-45 95z" fill="url(#r1)"/><path d="M332 172h46v128c0 35-23 52-53 52v-77c7 0 7-15 7-103z" fill="url(#r1)"/><path d="M122 340c0-120 38-182 93-182 40 0 70 57 107 114 23 33 56 33 56-2v42c0 40-43 56-83 23-40-35-63-110-97-110-26 0-33 50-33 115z" fill="url(#r2)"/><path d="M396 86q5 38 42 42-37 4-42 42-5-38-42-42 37-4 42-42z" fill="#e879f9"/></svg>`
 )}`;
 
-// --- Unicode-safe Base64 Encode/Decode for Universal Shareable Links ---
-const encodePageData = (pageObj, siteSettings, customThemes) => {
+// --- Ultra-Short Cloud Storage Helper for Short Shareable URLs ---
+async function publishPageToShortCloud(pageObj, siteSettings, customThemes) {
   try {
     const matchedCustomTheme = (customThemes || []).find((t) => t.id === pageObj.pageTheme) || null;
-    const minimal = {
+    const payload = {
       id: pageObj.id,
       title: pageObj.title,
       slug: pageObj.slug,
@@ -36,25 +36,28 @@ const encodePageData = (pageObj, siteSettings, customThemes) => {
       footerText: siteSettings?.footerText || '',
       sections: pageObj.sections
     };
-    const bytes = new TextEncoder().encode(JSON.stringify(minimal));
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return btoa(binary);
-  } catch (e) {
-    return '';
-  }
-};
-
-const decodePageData = (encodedStr) => {
-  try {
-    const binary = atob(encodedStr);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return JSON.parse(new TextDecoder().decode(bytes));
+    const res = await fetch('https://bytebin.lucko.me/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.key || null; // Returns a short 7-char key like "aB3dE9f"
   } catch (e) {
     return null;
   }
-};
+}
+
+async function fetchPageFromShortCloud(cloudKey) {
+  try {
+    const res = await fetch(`https://bytebin.lucko.me/${encodeURIComponent(cloudKey)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
 
 const FONT_OPTIONS = [
   { label: 'فونت پیش‌فرض سایت', value: '' },
@@ -97,7 +100,7 @@ const TEMPLATES = [
     id: 'tpl-blank',
     name: { fa: 'صفحه خالی', en: 'Blank Page' },
     category: 'عمومی',
-    description: { fa: 'شروع طراحی از صفر با تمام المان‌های المنتور', en: 'Start designing from scratch' },
+    description: { fa: 'شروع طراحی از صفر با کشیدن و رها کردن المان‌های المنتور', en: 'Start designing from scratch' },
     sections: [
       {
         id: 'sec-1',
@@ -106,7 +109,7 @@ const TEMPLATES = [
         paddingY: 48,
         widgets: [
           { id: 'w-1', type: 'heading', content: 'عنوان صفحه جدید شما در نکسورا', align: 'center', color: '#0f172a', fontSize: 36, fontFamily: '', bgColor: 'transparent', padding: 12, borderRadius: 0 },
-          { id: 'w-2', type: 'text', content: 'از ستون سمت راست المان‌های المنتور (نظرسنجی، فرم، آکاردئون، قیمت‌گذاری، ویدئو، ویس و...) را اضافه کنید و آیتم‌های هرکدام را مدیریت نمایید.', align: 'center', color: '#475569', fontSize: 16, fontFamily: '', bgColor: 'transparent', padding: 8, borderRadius: 0 }
+          { id: 'w-2', type: 'text', content: 'المان‌های دلخواه خود را از ستون سمت راست بکشید و روی این صفحه رها کنید.', align: 'center', color: '#475569', fontSize: 16, fontFamily: '', bgColor: 'transparent', padding: 8, borderRadius: 0 }
         ]
       }
     ]
@@ -168,23 +171,6 @@ const TEMPLATES = [
             padding: 28,
             borderRadius: 16
           }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'tpl-services',
-    name: { fa: 'معرفی خدمات و تعرفه‌ها', en: 'Services & Pricing' },
-    category: 'شرکتی',
-    description: { fa: 'نمایش لیست خدمات تخصصی، جدول تعرفه و سوالات متداول', en: 'Services, pricing and FAQ' },
-    sections: [
-      {
-        id: 'sec-s1',
-        columns: 1,
-        bgColor: '#f5f3ff',
-        paddingY: 56,
-        widgets: [
-          { id: 'ws-1', type: 'heading', content: 'خدمات تخصصی طراحی و توسعه دیجیتال', align: 'center', color: '#4c1d95', fontSize: 36, bgColor: 'transparent', padding: 8, borderRadius: 0 }
         ]
       }
     ]
@@ -273,14 +259,16 @@ const WIDGET_TYPES = [
 
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
-const slugify = (text) => {
+// Clean & Short Slug Formatter (Max 28 chars, lowercase alphanumeric + hyphens)
+const slugifyShort = (text) => {
   return text
     .toString()
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^\w\u0600-\u06FF-]+/g, '')
-    .replace(/--+/g, '-');
+    .replace(/--+/g, '-')
+    .slice(0, 28);
 };
 
 function resolvePageThemeConfig(pageThemeId, customThemes = [], embeddedCustomTheme = null) {
@@ -340,7 +328,7 @@ function CountdownDisplay({ targetDate, accentColor }) {
   );
 }
 
-function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont, pageTheme, customThemeObj }) {
+function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont, pageTheme, customThemeObj, onDragStartWidget }) {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formValues, setFormValues] = useState({});
   const [selectedPollIdx, setSelectedPollIdx] = useState(null);
@@ -726,12 +714,14 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
   return (
     <div
       id={`widget-node-${widget.id}`}
+      draggable={true}
+      onDragStart={onDragStartWidget}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
       }}
       style={wrapperStyle}
-      className={`relative group cursor-pointer transition-all ${isSelected ? 'ring-2 ring-purple-600 ring-offset-2' : 'hover:ring-1 hover:ring-purple-400'}`}
+      className={`relative group cursor-grab active:cursor-grabbing transition-all ${isSelected ? 'ring-2 ring-purple-600 ring-offset-2' : 'hover:ring-1 hover:ring-purple-400'}`}
     >
       {renderContent()}
     </div>
@@ -739,7 +729,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
 }
 
 // --- Public Standalone Page Viewer ---
-function PublicPageView({ page, siteSettings, customThemes, onIncrementView, onSaveSubmission, onBackToAdmin }) {
+function PublicPageView({ page, isLoadingCloud, siteSettings, customThemes, onIncrementView, onSaveSubmission, onBackToAdmin }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState('');
@@ -753,6 +743,15 @@ function PublicPageView({ page, siteSettings, customThemes, onIncrementView, onS
     }
   }, [page]);
 
+  if (isLoadingCloud) {
+    return (
+      <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm font-bold text-slate-700">در حال بارگذاری صفحه از نکسورا...</p>
+      </div>
+    );
+  }
+
   if (!page || page.status !== 'published' || page.visibility === 'private') {
     return (
       <div dir="rtl" className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
@@ -760,7 +759,7 @@ function PublicPageView({ page, siteSettings, customThemes, onIncrementView, onS
           <Lock className="w-8 h-8" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-2">این صفحه در دسترس نیست</h1>
-        <p className="text-slate-600 max-w-md mb-6">ممکن است لینک ناقص کپی شده باشد، صفحه هنوز منتشر نشده باشد یا دسترسی به آن خصوصی شده باشد.</p>
+        <p className="text-slate-600 max-w-md mb-6">ممکن است لینک اشتباه باشد، صفحه هنوز منتشر نشده باشد یا دسترسی به آن خصوصی شده باشد.</p>
         <button onClick={onBackToAdmin} className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800">
           ورود به پنل مدیریت نکسورا
         </button>
@@ -930,6 +929,7 @@ export default function App() {
         id: 'page-demo-1',
         title: 'معرفی هدفون استودیویی پرو',
         slug: 'studio-headphones',
+        cloudKey: '',
         pageTheme: 'custom-wp-royal',
         category: 'فروشگاهی',
         status: 'published',
@@ -1003,11 +1003,21 @@ export default function App() {
     } catch (e) {}
   }, [media]);
 
+  // Public Routing State (Short ?page=slug&c=shortKey)
   const [publicSlug, setPublicSlug] = useState(() => new URLSearchParams(window.location.search).get('page'));
-  const [urlEncodedPage, setUrlEncodedPage] = useState(() => {
-    const d = new URLSearchParams(window.location.search).get('d');
-    return d ? decodePageData(d) : null;
-  });
+  const [cloudKeyParam, setCloudKeyParam] = useState(() => new URLSearchParams(window.location.search).get('c'));
+  const [cloudFetchedPage, setCloudFetchedPage] = useState(null);
+  const [isLoadingCloud, setIsLoadingCloud] = useState(false);
+
+  useEffect(() => {
+    if (cloudKeyParam && !pages.some((p) => p.slug === publicSlug)) {
+      setIsLoadingCloud(true);
+      fetchPageFromShortCloud(cloudKeyParam).then((data) => {
+        if (data) setCloudFetchedPage(data);
+        setIsLoadingCloud(false);
+      });
+    }
+  }, [cloudKeyParam, publicSlug]);
 
   const [activeTab, setActiveTab] = useState('pages');
   const [editingPageId, setEditingPageId] = useState(null);
@@ -1024,6 +1034,12 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [mediaPickerCallback, setMediaPickerCallback] = useState(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  // Drag & Drop State
+  const [dragOverSecId, setDragOverSecId] = useState(null);
+  const [draggedNewWidgetType, setDraggedNewWidgetType] = useState(null);
+  const [draggedExistingWidget, setDraggedExistingWidget] = useState(null);
 
   // Voice Recorder State
   const [isRecording, setIsRecording] = useState(false);
@@ -1066,11 +1082,12 @@ export default function App() {
     showToast(`قالب وردپرس «${created.name}» ساخته شد و آماده استفاده است.`);
   };
 
-  if (publicSlug || urlEncodedPage) {
-    const targetPage = pages.find((p) => p.slug === publicSlug) || urlEncodedPage;
+  if (publicSlug || cloudKeyParam) {
+    const targetPage = pages.find((p) => p.slug === publicSlug) || cloudFetchedPage;
     return (
       <PublicPageView
         page={targetPage}
+        isLoadingCloud={isLoadingCloud}
         siteSettings={siteSettings}
         customThemes={customThemes}
         onIncrementView={(id) => setPages((prev) => prev.map((p) => (p.id === id ? { ...p, views: (p.views || 0) + 1 } : p)))}
@@ -1078,7 +1095,8 @@ export default function App() {
         onBackToAdmin={() => {
           window.history.pushState({}, '', window.location.pathname);
           setPublicSlug(null);
-          setUrlEncodedPage(null);
+          setCloudKeyParam(null);
+          setCloudFetchedPage(null);
         }}
       />
     );
@@ -1139,6 +1157,7 @@ export default function App() {
       id: newId,
       title,
       slug: '',
+      cloudKey: '',
       pageTheme: 'default',
       category: tpl.category,
       status: 'draft',
@@ -1153,7 +1172,7 @@ export default function App() {
     };
     setPages((prev) => [newPage, ...prev]);
     openEditor(newPage.id);
-    showToast('صفحه جدید ایجاد شد. برای انتشار، ابتدا آدرس اختصاصی (Slug) را وارد کنید.');
+    showToast('صفحه جدید ایجاد شد. المان‌ها را به صفحه بکشید و در نهایت یک Slug کوتاه وارد کنید.');
   };
 
   const openEditor = (pageId, focusSettings = false) => {
@@ -1170,7 +1189,7 @@ export default function App() {
 
   const duplicatePage = (page) => {
     if (!perms.createPages) return showToast('شما مجوز کپی کردن صفحه را ندارید.');
-    const copy = { ...JSON.parse(JSON.stringify(page)), id: `page-${generateId()}`, title: `${page.title} (کپی)`, slug: '', status: 'draft', views: 0 };
+    const copy = { ...JSON.parse(JSON.stringify(page)), id: `page-${generateId()}`, title: `${page.title} (کپی)`, slug: '', cloudKey: '', status: 'draft', views: 0 };
     setPages((prev) => [copy, ...prev]);
     showToast('صفحه کپی شد (آدرس Slug خالی است و باید قبل از انتشار تنظیم شود).');
   };
@@ -1181,20 +1200,26 @@ export default function App() {
     showToast('صفحه حذف شد');
   };
 
-  const getPublicUrl = (pageObj) => {
+  const buildShortShareUrl = (slug, cloudKey) => {
     const base = `${window.location.origin}${window.location.pathname}`;
-    const encoded = encodePageData(pageObj, siteSettings, customThemes);
-    return encoded ? `${base}?page=${pageObj.slug}&d=${encodeURIComponent(encoded)}` : `${base}?page=${pageObj.slug}`;
+    return cloudKey ? `${base}?page=${slug}&c=${cloudKey}` : `${base}?page=${slug}`;
   };
 
-  const copyShareLink = (pageObj) => {
+  const copyShortShareLink = async (pageObj) => {
     if (!pageObj.slug || !pageObj.slug.trim()) {
-      showToast('ابتدا باید آدرس اختصاصی (Slug) را در تنظیمات صفحه وارد کنید!');
+      showToast('ابتدا باید آدرس کوتاه (Slug) را در تنظیمات صفحه وارد کنید!');
       openEditor(pageObj.id, true);
       return;
     }
-    navigator.clipboard.writeText(getPublicUrl(pageObj));
-    showToast('لینک نهایی و قابل اشتراک‌گذاری در حافظه کپی شد!');
+    setIsPublishing(true);
+    const key = await publishPageToShortCloud(pageObj, siteSettings, customThemes);
+    setIsPublishing(false);
+    if (key) {
+      setPages((prev) => prev.map((p) => (p.id === pageObj.id ? { ...p, cloudKey: key, status: 'published' } : p)));
+    }
+    const shortUrl = buildShortShareUrl(pageObj.slug, key || pageObj.cloudKey);
+    navigator.clipboard.writeText(shortUrl);
+    showToast(`لینک کوتاه صفحه کپی شد: ${shortUrl}`);
   };
 
   const exportPageJson = (page) => {
@@ -1216,17 +1241,17 @@ export default function App() {
     setPages((prev) => prev.map((p) => (p.id === currentPage.id ? { ...updater(p), updatedAt: new Date().toLocaleDateString('fa-IR') } : p)));
   };
 
-  const handlePublishAndCopy = () => {
+  const handlePublishAndCopy = async () => {
     if (!currentPage) return;
     if (!currentPage.slug || !currentPage.slug.trim()) {
       setEditorRightTab('settings');
       setSlugErrorHighlight(true);
-      return showToast('خطا: کادر آدرس اختصاصی (Slug) خالی است! ابتدا آن را در پنل سمت چپ وارد کنید.');
+      return showToast('خطا: کادر آدرس اختصاصی (Slug) خالی است! ابتدا یک نام کوتاه وارد کنید.');
     }
     setSlugErrorHighlight(false);
     const publishedObj = { ...currentPage, status: 'published' };
     updateCurrentPage(() => publishedObj, false);
-    copyShareLink(publishedObj);
+    await copyShortShareLink(publishedObj);
   };
 
   const handlePreviewPage = () => {
@@ -1234,7 +1259,7 @@ export default function App() {
     if (!currentPage.slug || !currentPage.slug.trim()) {
       setEditorRightTab('settings');
       setSlugErrorHighlight(true);
-      return showToast('برای مشاهده پیش‌نمایش و ساخت لینک، ابتدا آدرس اختصاصی (Slug) را وارد کنید.');
+      return showToast('برای مشاهده پیش‌نمایش، ابتدا آدرس کوتاه (Slug) را وارد کنید.');
     }
     setSlugErrorHighlight(false);
     const publishedObj = { ...currentPage, status: 'published' };
@@ -1265,21 +1290,7 @@ export default function App() {
     }, 80);
   };
 
-  const addSection = (columns = 1) => {
-    const newSecId = `sec-${generateId()}`;
-    const newSec = {
-      id: newSecId,
-      columns,
-      bgColor: '#ffffff',
-      paddingY: 48,
-      widgets: [{ id: `w-${generateId()}`, type: 'heading', content: 'عنوان بخش جدید', align: 'center', color: '#0f172a', fontSize: 28, fontFamily: '', bgColor: 'transparent', padding: 8, borderRadius: 0 }]
-    };
-    updateCurrentPage((p) => ({ ...p, sections: [...p.sections, newSec] }));
-    setSelectedSectionId(newSecId);
-    scrollToElementId(`section-node-${newSecId}`);
-  };
-
-  const addWidgetToSection = (sectionId, type) => {
+  const createDefaultWidgetObject = (type) => {
     const defaults = {
       heading: { content: 'عنوان جدید', fontSize: 32, color: '#0f172a', align: 'right', fontFamily: '' },
       subheading: { content: 'زیرعنوان توضیحی', fontSize: 20, color: '#475569', align: 'right', fontFamily: '' },
@@ -1364,15 +1375,111 @@ export default function App() {
       html: { content: '<div style="padding:20px;background:#f5f3ff;border-radius:12px;text-align:center;font-weight:bold;">کد HTML سفارشی شما</div>' }
     };
 
-    const newWidgetId = `w-${generateId()}`;
-    const newWidget = { id: newWidgetId, type, bgColor: 'transparent', padding: 8, borderRadius: 0, ...defaults[type] };
+    return {
+      id: `w-${generateId()}`,
+      type,
+      bgColor: 'transparent',
+      padding: 8,
+      borderRadius: 0,
+      ...defaults[type]
+    };
+  };
+
+  const addSection = (columns = 1, initialWidgetType = null) => {
+    const newSecId = `sec-${generateId()}`;
+    const firstWidget = initialWidgetType
+      ? createDefaultWidgetObject(initialWidgetType)
+      : { id: `w-${generateId()}`, type: 'heading', content: 'عنوان بخش جدید', align: 'center', color: '#0f172a', fontSize: 28, fontFamily: '', bgColor: 'transparent', padding: 8, borderRadius: 0 };
+    const newSec = {
+      id: newSecId,
+      columns,
+      bgColor: '#ffffff',
+      paddingY: 48,
+      widgets: [firstWidget]
+    };
+    updateCurrentPage((p) => ({ ...p, sections: [...p.sections, newSec] }));
+    setSelectedSectionId(newSecId);
+    setSelectedWidgetId(firstWidget.id);
+    scrollToElementId(`section-node-${newSecId}`);
+  };
+
+  const addWidgetToSection = (sectionId, type, insertIndex = null) => {
+    const newWidget = createDefaultWidgetObject(type);
     updateCurrentPage((p) => ({
       ...p,
-      sections: p.sections.map((s) => (s.id === sectionId ? { ...s, widgets: [...s.widgets, newWidget] } : s))
+      sections: p.sections.map((s) => {
+        if (s.id !== sectionId) return s;
+        const nextWidgets = [...s.widgets];
+        if (insertIndex !== null && insertIndex >= 0 && insertIndex <= nextWidgets.length) {
+          nextWidgets.splice(insertIndex, 0, newWidget);
+        } else {
+          nextWidgets.push(newWidget);
+        }
+        return { ...s, widgets: nextWidgets };
+      })
     }));
     setSelectedSectionId(sectionId);
-    setSelectedWidgetId(newWidgetId);
-    scrollToElementId(`widget-node-${newWidgetId}`);
+    setSelectedWidgetId(newWidget.id);
+    scrollToElementId(`widget-node-${newWidget.id}`);
+  };
+
+  // --- Drag & Drop Handlers (Sidebar -> Canvas & Reordering inside Canvas) ---
+  const handleDropOnSection = (e, targetSecId, targetWidgetIndex = null) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverSecId(null);
+
+    const newType = e.dataTransfer.getData('nexora/new-widget') || draggedNewWidgetType;
+    const movePayloadRaw = e.dataTransfer.getData('nexora/move-widget');
+
+    if (newType) {
+      addWidgetToSection(targetSecId, newType, targetWidgetIndex);
+      setDraggedNewWidgetType(null);
+      return;
+    }
+
+    if (movePayloadRaw || draggedExistingWidget) {
+      const source = movePayloadRaw ? JSON.parse(movePayloadRaw) : draggedExistingWidget;
+      setDraggedExistingWidget(null);
+      if (!source) return;
+
+      updateCurrentPage((p) => {
+        let movedWidget = null;
+        const removedSections = p.sections.map((s) => {
+          if (s.id !== source.secId) return s;
+          const copy = [...s.widgets];
+          movedWidget = copy.splice(source.wIdx, 1)[0];
+          return { ...s, widgets: copy };
+        });
+
+        if (!movedWidget) return p;
+
+        return {
+          ...p,
+          sections: removedSections.map((s) => {
+            if (s.id !== targetSecId) return s;
+            const copy = [...s.widgets];
+            if (targetWidgetIndex !== null && targetWidgetIndex >= 0 && targetWidgetIndex <= copy.length) {
+              copy.splice(targetWidgetIndex, 0, movedWidget);
+            } else {
+              copy.push(movedWidget);
+            }
+            return { ...s, widgets: copy };
+          })
+        };
+      });
+    }
+  };
+
+  const handleDropOnNewSectionZone = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverSecId(null);
+    const newType = e.dataTransfer.getData('nexora/new-widget') || draggedNewWidgetType;
+    if (newType) {
+      addSection(1, newType);
+      setDraggedNewWidgetType(null);
+    }
   };
 
   const updateSelectedWidget = (patch) => {
@@ -1458,7 +1565,7 @@ export default function App() {
           <div className="flex items-center gap-3">
             <button onClick={() => setActiveTab('pages')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center gap-1.5 text-sm font-medium">
               <ArrowRight className={`w-4 h-4 ${dir === 'ltr' ? 'rotate-180' : ''}`} />
-              {lang === 'fa' ? 'داشبورد نکسورا' : 'Nexora Dashboard'}
+              داشبورد نکسورا
             </button>
             <div className="h-5 w-px bg-slate-200" />
             <img src={siteSettings.logoUrl || NEXORA_LOGO_DATA_URL} alt="Nexora" className="w-7 h-7 rounded-lg object-cover hidden sm:block" />
@@ -1484,9 +1591,9 @@ export default function App() {
                   <Eye className="w-3.5 h-3.5" />
                   پیش‌نمایش
                 </button>
-                <button onClick={handlePublishAndCopy} className="px-4 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center gap-1.5 shadow-sm">
+                <button disabled={isPublishing} onClick={handlePublishAndCopy} className="px-4 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center gap-1.5 shadow-sm disabled:opacity-60">
                   <Globe className="w-3.5 h-3.5" />
-                  انتشار و کپی لینک
+                  {isPublishing ? 'در حال ساخت لینک کوتاه...' : 'انتشار و کپی لینک کوتاه'}
                 </button>
               </>
             ) : (
@@ -1496,7 +1603,7 @@ export default function App() {
         </header>
 
         <div className="flex-1 min-h-0 flex overflow-hidden">
-          {/* Left Panel: All Elementor Widgets */}
+          {/* Left Panel: Draggable Elementor Widgets */}
           <aside className="w-64 bg-white border-e border-slate-200 flex flex-col shrink-0 overflow-y-auto p-3">
             <div className="mb-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">افزودن سکشن جدید</h3>
@@ -1518,99 +1625,158 @@ export default function App() {
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-1">المان‌های المنتور ({filteredWidgets.length})</h3>
+              <div className="flex items-center justify-between px-1 mb-2">
+                <h3 className="text-xs font-bold text-slate-400">المان‌ها (بکشید یا کلیک کنید)</h3>
+              </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {filteredWidgets.map((item) => {
                   const Icon = item.icon;
                   return (
-                    <button
+                    <div
                       key={item.type}
+                      draggable={true}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('nexora/new-widget', item.type);
+                        setDraggedNewWidgetType(item.type);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedNewWidgetType(null);
+                        setDragOverSecId(null);
+                      }}
                       onClick={() => {
                         const targetSec = selectedSectionId || currentPage.sections[0]?.id;
                         if (targetSec) addWidgetToSection(targetSec, item.type);
-                        else addSection(1);
+                        else addSection(1, item.type);
                       }}
-                      className="p-2 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/60 flex flex-col items-center justify-center gap-1 text-center transition group"
+                      className="p-2 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/60 flex flex-col items-center justify-center gap-1 text-center transition group cursor-grab active:cursor-grabbing select-none"
                     >
                       <Icon className="w-4 h-4 text-slate-600 group-hover:text-purple-600" />
                       <span className="text-[11px] font-medium text-slate-700 leading-tight">{item.label[lang]}</span>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
             </div>
           </aside>
 
-          {/* Center Canvas (Free-scrolling container for unlimited elements) */}
+          {/* Center Canvas (Supports Drop Anywhere + Free Vertical Scroll) */}
           <main onClick={() => setSelectedWidgetId(null)} className="flex-1 min-h-0 overflow-y-auto p-6 pb-28 bg-slate-200/70">
             <div style={{ width: viewport === 'mobile' ? '390px' : viewport === 'tablet' ? '768px' : '100%', ...themeConfig.outerStyle }} className={`max-w-5xl mx-auto h-fit min-h-[calc(100vh-8rem)] shadow-xl rounded-xl transition-all duration-300 ${themeConfig.outerClass}`}>
               <div style={themeConfig.innerStyle} className={`nexora-page-container rounded-xl ${themeConfig.innerClass}`}>
-                {currentPage.sections.map((sec, sIdx) => (
-                  <div
-                    id={`section-node-${sec.id}`}
-                    key={sec.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedSectionId(sec.id);
-                      setSelectedWidgetId(null);
-                    }}
-                    style={{ backgroundColor: themeConfig.sectionOverrideClass ? 'transparent' : (sec.bgColor || '#ffffff'), paddingTop: `${sec.paddingY ?? 48}px`, paddingBottom: `${sec.paddingY ?? 48}px` }}
-                    className={`relative px-6 border-b border-dashed transition nexora-page-section ${themeConfig.sectionOverrideClass} ${selectedSectionId === sec.id ? 'border-purple-500 ring-1 ring-inset ring-purple-400' : 'border-slate-200'}`}
-                  >
-                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-slate-900/85 text-white px-2 py-1 rounded-lg text-xs z-10">
-                      <span>بخش {sIdx + 1}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateCurrentPage((p) => ({ ...p, sections: p.sections.filter((s) => s.id !== sec.id) }));
-                        }}
-                        className="p-1 hover:text-red-400"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                {currentPage.sections.map((sec, sIdx) => {
+                  const isDraggingOverThis = dragOverSecId === sec.id;
+                  return (
+                    <div
+                      id={`section-node-${sec.id}`}
+                      key={sec.id}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (dragOverSecId !== sec.id) setDragOverSecId(sec.id);
+                      }}
+                      onDragLeave={() => setDragOverSecId(null)}
+                      onDrop={(e) => handleDropOnSection(e, sec.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSectionId(sec.id);
+                        setSelectedWidgetId(null);
+                      }}
+                      style={{ backgroundColor: themeConfig.sectionOverrideClass ? 'transparent' : (sec.bgColor || '#ffffff'), paddingTop: `${sec.paddingY ?? 48}px`, paddingBottom: `${sec.paddingY ?? 48}px` }}
+                      className={`relative px-6 border-b border-dashed transition nexora-page-section ${themeConfig.sectionOverrideClass} ${
+                        isDraggingOverThis
+                          ? 'ring-2 ring-purple-600 bg-purple-50/40 border-purple-500'
+                          : selectedSectionId === sec.id
+                          ? 'border-purple-500 ring-1 ring-inset ring-purple-400'
+                          : 'border-slate-200'
+                      }`}
+                    >
+                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-slate-900/85 text-white px-2 py-1 rounded-lg text-xs z-10">
+                        <span>بخش {sIdx + 1}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateCurrentPage((p) => ({ ...p, sections: p.sections.filter((s) => s.id !== sec.id) }));
+                          }}
+                          className="p-1 hover:text-red-400"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-                    <div className={`grid gap-5 ${sec.columns === 3 ? 'grid-cols-1 md:grid-cols-3' : sec.columns === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
-                      {sec.widgets.map((w, wIdx) => (
-                        <div key={w.id} className="relative group">
-                          {selectedWidgetId === w.id && (
-                            <div className="absolute -top-7 right-0 flex items-center gap-1 bg-purple-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
-                              <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-purple-700 rounded"><MoveUp className="w-3 h-3" /></button>
-                              <button onClick={() => moveWidget(sec.id, wIdx, 1)} className="p-0.5 hover:bg-purple-700 rounded"><MoveDown className="w-3 h-3" /></button>
-                              <button
-                                onClick={() => {
-                                  const cloned = { ...JSON.parse(JSON.stringify(w)), id: `w-${generateId()}` };
-                                  updateCurrentPage((p) => ({ ...p, sections: p.sections.map((s) => (s.id === sec.id ? { ...s, widgets: [...s.widgets, cloned] } : s)) }));
-                                }}
-                                className="p-0.5 hover:bg-purple-700 rounded"
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
-                              <button onClick={() => deleteWidget(sec.id, w.id)} className="p-0.5 hover:bg-red-600 rounded"><Trash2 className="w-3 h-3" /></button>
-                            </div>
-                          )}
-                          <WidgetRenderer
-                            widget={w}
-                            isEditing={true}
-                            isSelected={selectedWidgetId === w.id}
-                            defaultFont={siteSettings.defaultFont}
-                            pageTheme={currentPage.pageTheme}
-                            customThemeObj={themeConfig.customObj}
-                            onSelect={() => {
-                              setSelectedSectionId(sec.id);
-                              setSelectedWidgetId(w.id);
-                              setEditorRightTab('style');
-                            }}
-                            lang={lang}
-                          />
+                      <div className={`grid gap-5 ${sec.columns === 3 ? 'grid-cols-1 md:grid-cols-3' : sec.columns === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+                        {sec.widgets.map((w, wIdx) => (
+                          <div
+                            key={w.id}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => handleDropOnSection(e, sec.id, wIdx)}
+                            className="relative group"
+                          >
+                            {selectedWidgetId === w.id && (
+                              <div className="absolute -top-7 right-0 flex items-center gap-1 bg-purple-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
+                                <span className="cursor-grab px-0.5" title="بکشید و جابه‌جا کنید"><GripVertical className="w-3 h-3" /></span>
+                                <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-purple-700 rounded"><MoveUp className="w-3 h-3" /></button>
+                                <button onClick={() => moveWidget(sec.id, wIdx, 1)} className="p-0.5 hover:bg-purple-700 rounded"><MoveDown className="w-3 h-3" /></button>
+                                <button
+                                  onClick={() => {
+                                    const cloned = { ...JSON.parse(JSON.stringify(w)), id: `w-${generateId()}` };
+                                    updateCurrentPage((p) => ({ ...p, sections: p.sections.map((s) => (s.id === sec.id ? { ...s, widgets: [...s.widgets, cloned] } : s)) }));
+                                  }}
+                                  className="p-0.5 hover:bg-purple-700 rounded"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                                <button onClick={() => deleteWidget(sec.id, w.id)} className="p-0.5 hover:bg-red-600 rounded"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            )}
+                            <WidgetRenderer
+                              widget={w}
+                              isEditing={true}
+                              isSelected={selectedWidgetId === w.id}
+                              defaultFont={siteSettings.defaultFont}
+                              pageTheme={currentPage.pageTheme}
+                              customThemeObj={themeConfig.customObj}
+                              onDragStartWidget={(e) => {
+                                e.stopPropagation();
+                                const payload = { secId: sec.id, wIdx };
+                                e.dataTransfer.setData('nexora/move-widget', JSON.stringify(payload));
+                                setDraggedExistingWidget(payload);
+                              }}
+                              onSelect={() => {
+                                setSelectedSectionId(sec.id);
+                                setSelectedWidgetId(w.id);
+                                setEditorRightTab('style');
+                              }}
+                              lang={lang}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {isDraggingOverThis && (
+                        <div className="mt-4 py-3 border-2 border-dashed border-purple-500 rounded-xl bg-purple-100/70 text-purple-800 text-xs font-bold text-center">
+                          المان را اینجا رها کنید تا به این بخش اضافه شود
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
-                {/* Bottom Quick Add Bar inside Canvas */}
-                <div className="p-6 text-center bg-slate-50/70 border-t border-dashed border-slate-200 rounded-b-xl">
+                {/* Bottom Dropzone & Add Section Bar */}
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverSecId('new-section-zone');
+                  }}
+                  onDragLeave={() => setDragOverSecId(null)}
+                  onDrop={handleDropOnNewSectionZone}
+                  className={`p-8 text-center border-t-2 border-dashed transition rounded-b-xl ${
+                    dragOverSecId === 'new-section-zone'
+                      ? 'bg-purple-100 border-purple-600 text-purple-800'
+                      : 'bg-slate-50/70 border-slate-200'
+                  }`}
+                >
+                  <p className="text-xs text-slate-500 mb-3">
+                    المان‌ها را از ستون سمت راست بکشید و اینجا رها کنید، یا بخش جدید بسازید:
+                  </p>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -1642,22 +1808,29 @@ export default function App() {
             <div className="p-4 space-y-5">
               {editorRightTab === 'settings' ? (
                 <>
+                  {/* Short Mandatory Slug Input */}
                   <div className={`p-3 rounded-xl border ${slugErrorHighlight || !currentPage.slug ? 'bg-rose-50/70 border-rose-300' : 'bg-slate-50 border-slate-200'}`}>
                     <label className="flex items-center justify-between text-xs font-bold text-slate-800 mb-1.5">
-                      <span>آدرس اختصاصی صفحه (Slug) *</span>
-                      {!currentPage.slug && <span className="text-[10px] text-rose-600 font-bold flex items-center gap-0.5"><AlertTriangle className="w-3 h-3" />الزامی</span>}
+                      <span>آدرس کوتاه صفحه (Slug) *</span>
+                      <span className="text-[10px] text-slate-500">{(currentPage.slug || '').length}/28</span>
                     </label>
                     <input
                       type="text"
                       dir="ltr"
+                      maxLength={28}
                       value={currentPage.slug || ''}
                       onChange={(e) => {
                         setSlugErrorHighlight(false);
-                        updateCurrentPage((p) => ({ ...p, slug: slugify(e.target.value) }), false);
+                        updateCurrentPage((p) => ({ ...p, slug: slugifyShort(e.target.value) }), false);
                       }}
-                      placeholder="مثلاً: my-nexora-page"
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white"
+                      placeholder="مثلاً: sale-page"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white font-mono"
                     />
+                    {currentPage.slug && (
+                      <div className="mt-2 p-2 bg-white rounded-lg border border-slate-200 text-[11px] text-purple-700 font-mono break-all" dir="ltr">
+                        {buildShortShareUrl(currentPage.slug, currentPage.cloudKey)}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/80 space-y-2">
@@ -1691,7 +1864,7 @@ export default function App() {
                         onChange={(e) => {
                           if (e.target.value === 'published' && (!currentPage.slug || !currentPage.slug.trim())) {
                             setSlugErrorHighlight(true);
-                            return showToast('ابتدا کادر آدرس اختصاصی (Slug) را پر کنید.');
+                            return showToast('ابتدا کادر آدرس کوتاه (Slug) را پر کنید.');
                           }
                           updateCurrentPage((p) => ({ ...p, status: e.target.value }), false);
                         }}
@@ -1983,7 +2156,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* TESTIMONIAL, COUNTER, PROGRESS, SOCIAL, GALLERY, TABLE, LIST */}
                   {selectedWidget.type === 'testimonial' && (
                     <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
                       <div className="flex items-center justify-between">
@@ -2263,7 +2435,7 @@ export default function App() {
                   </div>
                 </>
               ) : (
-                <p className="text-xs text-slate-500 text-center py-8">روی هر المان در صفحه کلیک کنید تا گزینه‌ها، آیتم‌ها، رنگ و فونت آن را مدیریت کنید.</p>
+                <p className="text-xs text-slate-500 text-center py-8">المان‌های دلخواه را از ستون سمت راست بکشید و روی صفحه رها کنید یا روی هر المان کلیک نمایید.</p>
               )}
             </div>
           </aside>
@@ -2410,7 +2582,7 @@ export default function App() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-slate-900">مدیریت صفحات در نکسورا</h1>
-                <p className="text-sm text-slate-500 mt-1">صفحات خود را با المان‌های کامل المنتور بسازید، قالب وردپرسی و آدرس Slug را وارد کنید و منتشر نمایید.</p>
+                <p className="text-sm text-slate-500 mt-1">صفحات خود را با کشیدن و رها کردن المان‌های المنتور بسازید و لینک کوتاه اختصاصی بگیرید.</p>
               </div>
               {perms.createPages && (
                 <button onClick={() => createPageFromTemplate(TEMPLATES[0])} className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 shadow-sm self-start">
@@ -2439,7 +2611,7 @@ export default function App() {
                   <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
                     <tr>
                       <th className="p-4 text-start font-bold">عنوان صفحه</th>
-                      <th className="p-4 text-start font-bold">آدرس (Slug) و لینک</th>
+                      <th className="p-4 text-start font-bold">لینک کوتاه (Slug)</th>
                       <th className="p-4 text-center font-bold">وضعیت</th>
                       <th className="p-4 text-center font-bold">بازدید</th>
                       <th className="p-4 text-end font-bold">عملیات</th>
@@ -2457,10 +2629,10 @@ export default function App() {
                           <td className="p-4">
                             {page.slug && page.slug.trim() ? (
                               <div className="flex items-center gap-2">
-                                <code dir="ltr" className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700">?page={page.slug}</code>
-                                <button onClick={() => copyShareLink(page)} className="px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center gap-1">
+                                <code dir="ltr" className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700 font-mono">?page={page.slug}</code>
+                                <button onClick={() => copyShortShareLink(page)} className="px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center gap-1">
                                   <Share2 className="w-3.5 h-3.5" />
-                                  کپی لینک
+                                  کپی لینک کوتاه
                                 </button>
                               </div>
                             ) : (
