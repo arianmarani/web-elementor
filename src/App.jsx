@@ -6,17 +6,55 @@ import {
   ExternalLink, LogOut, LogIn, Sparkles, Layers, Code, List, Table as TableIcon,
   Minus, FileText, Share2, KeyRound, ArrowRight, X, CheckCircle2,
   AlignLeft, AlignCenter, AlignRight, Mic, Volume2, Inbox, StopCircle, Upload,
-  Users, Shield, Sliders, Film, UserPlus, AlertTriangle, CheckSquare
+  Users, Shield, Sliders, Film, UserPlus, AlertTriangle, CheckSquare, Paintbrush
 } from 'lucide-react';
 
+// --- Nexora Brand Logo (Embedded High-Res Vector Data URI for Favicon & UI) ---
+const NEXORA_LOGO_DATA_URL = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#120638"/>
+      <stop offset="100%" stop-color="#07021c"/>
+    </linearGradient>
+    <linearGradient id="ribbonLeft" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="45%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="ribbonMain" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e879f9"/>
+      <stop offset="50%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="ribbonRight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#4338ca"/>
+    </linearGradient>
+    <linearGradient id="sparkleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e879f9"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bgGrad)"/>
+  <path d="M122 340 C122 230, 155 170, 210 170 L210 245 C175 245, 165 285, 165 340 Z" fill="url(#ribbonLeft)"/>
+  <path d="M332 172 L378 172 L378 300 C378 335, 355 352, 325 352 L325 275 C332 275, 332 260, 332 172 Z" fill="url(#ribbonRight)"/>
+  <path d="M122 340 C122 220, 160 158, 215 158 C255 158, 285 215, 322 272 C345 305, 378 305, 378 270 L378 312 C378 352, 335 368, 295 335 C255 300, 232 225, 198 225 C172 225, 165 275, 165 340 Z" fill="url(#ribbonMain)"/>
+  <path d="M396 86 Q401 124 438 128 Q401 132 396 170 Q391 132 354 128 Q391 124 396 86 Z" fill="url(#sparkleGrad)"/>
+</svg>
+`)}`;
+
 // --- Unicode-safe Base64 Encode/Decode for Universal Shareable Links ---
-const encodePageData = (pageObj, siteSettings) => {
+const encodePageData = (pageObj, siteSettings, customThemes) => {
   try {
+    const matchedCustomTheme = (customThemes || []).find((t) => t.id === pageObj.pageTheme) || null;
     const minimal = {
       id: pageObj.id,
       title: pageObj.title,
       slug: pageObj.slug,
       pageTheme: pageObj.pageTheme || 'default',
+      customThemeObj: matchedCustomTheme,
       status: 'published',
       visibility: pageObj.visibility || 'public',
       password: pageObj.password || '',
@@ -63,32 +101,37 @@ const FONT_OPTIONS = [
   { label: 'کدنویسی (Monospace)', value: "'Courier New', monospace" }
 ];
 
-// --- WordPress-Style Global Page Themes ---
-const WP_PAGE_THEMES = [
+// --- Built-in WordPress-Style Global Page Themes ---
+const BUILTIN_WP_THEMES = [
   {
     id: 'default',
     name: 'قالب استاندارد تمام‌عرض (Full Width)',
-    desc: 'چیدمان مدرن و تمام‌صفحه مناسب لندینگ‌پیج‌ها'
+    desc: 'چیدمان مدرن و تمام‌صفحه مناسب لندینگ‌پیج‌ها',
+    isCustom: false
   },
   {
     id: 'wp-boxed',
     name: 'قالب کلاسیک وردپرس (Boxed Container)',
-    desc: 'کادر مرکزی برجسته با پس‌زمینه خاکستری روشن و حاشیه کلاسیک'
+    desc: 'کادر مرکزی برجسته با پس‌زمینه خاکستری روشن و حاشیه کلاسیک',
+    isCustom: false
   },
   {
     id: 'wp-editorial',
     name: 'قالب مجله‌ای و وبلاگ (Editorial Paper)',
-    desc: 'پس‌زمینه کرم کاغذی با تایپوگرافی خوانا و خط راهنمای بالای صفحه'
+    desc: 'پس‌زمینه کرم کاغذی با تایپوگرافی خوانا و خط راهنمای بالای صفحه',
+    isCustom: false
   },
   {
     id: 'wp-dark',
     name: 'قالب استودیویی تیره (Dark Studio)',
-    desc: 'تم تاریک حرفه‌ای با کنتراست بالا برای محصولات دیجیتال'
+    desc: 'تم تاریک حرفه‌ای با کنتراست بالا برای محصولات دیجیتال',
+    isCustom: false
   },
   {
     id: 'wp-glass',
     name: 'قالب گلس‌مورفیسم (Gradient Glass)',
-    desc: 'پس‌زمینه گرادیانت ملایم با باکس‌های شیشه‌ای مدرن'
+    desc: 'پس‌زمینه گرادیانت ملایم با باکس‌های شیشه‌ای مدرن',
+    isCustom: false
   }
 ];
 
@@ -100,7 +143,7 @@ const PERMISSION_LABELS = [
   { key: 'deletePages', label: 'حذف صفحات' },
   { key: 'manageMedia', label: 'آپلود و حذف در کتابخانه رسانه' },
   { key: 'viewSubmissions', label: 'مشاهده فرم‌های ارسالی کاربران' },
-  { key: 'manageSettings', label: 'تغییر تنظیمات کلی وب‌سایت' },
+  { key: 'manageSettings', label: 'تغییر تنظیمات سایت و قالب‌های وردپرس' },
   { key: 'manageUsers', label: 'مدیریت مدیران و سطوح دسترسی' }
 ];
 
@@ -147,7 +190,7 @@ const ROLE_PRESETS = {
   }
 };
 
-// --- Initial Templates ---
+// --- Initial Content Templates ---
 const TEMPLATES = [
   {
     id: 'tpl-blank',
@@ -164,7 +207,7 @@ const TEMPLATES = [
           {
             id: 'w-1',
             type: 'heading',
-            content: 'عنوان صفحه جدید شما',
+            content: 'عنوان صفحه جدید شما در نکسورا',
             align: 'center',
             color: '#0f172a',
             fontSize: 36,
@@ -176,7 +219,7 @@ const TEMPLATES = [
           {
             id: 'w-2',
             type: 'text',
-            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید اضافه کنید یا قالب کلی صفحه را تغییر دهید.',
+            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید اضافه کنید یا قالب وردپرسی کل صفحه را تغییر دهید.',
             align: 'center',
             color: '#475569',
             fontSize: 16,
@@ -239,7 +282,7 @@ const TEMPLATES = [
             url: '#order',
             align: 'right',
             color: '#ffffff',
-            bgColor: '#2563eb',
+            bgColor: '#6d28d9',
             fontSize: 16,
             padding: 14,
             borderRadius: 10
@@ -298,13 +341,13 @@ const TEMPLATES = [
       {
         id: 'sec-l1',
         columns: 1,
-        bgColor: '#0f172a',
+        bgColor: '#120638',
         paddingY: 72,
         widgets: [
           {
             id: 'wl-1',
             type: 'heading',
-            content: 'کسب‌وکار خود را در ۳۰ روز متحول کنید',
+            content: 'کسب‌وکار خود را با نکسورا در ۳۰ روز متحول کنید',
             align: 'center',
             color: '#ffffff',
             fontSize: 42,
@@ -329,8 +372,8 @@ const TEMPLATES = [
             label: 'شروع رایگان ۱۴ روزه',
             url: '#signup',
             align: 'center',
-            color: '#0f172a',
-            bgColor: '#38bdf8',
+            color: '#ffffff',
+            bgColor: '#7c3aed',
             fontSize: 17,
             padding: 16,
             borderRadius: 12
@@ -367,7 +410,7 @@ const TEMPLATES = [
       {
         id: 'sec-s1',
         columns: 1,
-        bgColor: '#eff6ff',
+        bgColor: '#f5f3ff',
         paddingY: 56,
         widgets: [
           {
@@ -375,7 +418,7 @@ const TEMPLATES = [
             type: 'heading',
             content: 'خدمات تخصصی طراحی و توسعه دیجیتال',
             align: 'center',
-            color: '#1e3a8a',
+            color: '#4c1d95',
             fontSize: 36,
             bgColor: 'transparent',
             padding: 8,
@@ -386,41 +429,11 @@ const TEMPLATES = [
             type: 'subheading',
             content: 'از ایده تا اجرا در کنار شما هستیم',
             align: 'center',
-            color: '#3b82f6',
+            color: '#7c3aed',
             fontSize: 20,
             bgColor: 'transparent',
             padding: 8,
             borderRadius: 0
-          }
-        ]
-      },
-      {
-        id: 'sec-s2',
-        columns: 2,
-        bgColor: '#ffffff',
-        paddingY: 48,
-        widgets: [
-          {
-            id: 'ws-3',
-            type: 'card',
-            title: 'طراحی وب‌سایت و فروشگاه اینترنتی',
-            content: 'طراحی اختصاصی، سرعت بالا و کاملاً واکنش‌گرا برای موبایل و دسکتاپ.',
-            imageUrl: '',
-            bgColor: '#f8fafc',
-            color: '#0f172a',
-            padding: 24,
-            borderRadius: 14
-          },
-          {
-            id: 'ws-4',
-            type: 'card',
-            title: 'سئو و بهینه‌سازی موتورهای جستجو',
-            content: 'افزایش رتبه در گوگل و جذب مشتریان هدفمند به صورت پایدار.',
-            imageUrl: '',
-            bgColor: '#f8fafc',
-            color: '#0f172a',
-            padding: 24,
-            borderRadius: 14
           }
         ]
       }
@@ -441,21 +454,10 @@ const TEMPLATES = [
           {
             id: 'wc-1',
             type: 'heading',
-            content: 'درباره گروه فناوری نوآوران',
+            content: 'درباره گروه فناوری نکسورا',
             align: 'center',
             color: '#0f172a',
             fontSize: 36,
-            bgColor: 'transparent',
-            padding: 12,
-            borderRadius: 0
-          },
-          {
-            id: 'wc-2',
-            type: 'text',
-            content: 'ما از سال ۱۳۹۵ با هدف ساده‌سازی فرآیندهای دیجیتال برای کسب‌وکارهای ایرانی فعالیت خود را آغاز کردیم.',
-            align: 'center',
-            color: '#475569',
-            fontSize: 17,
             bgColor: 'transparent',
             padding: 12,
             borderRadius: 0
@@ -485,17 +487,6 @@ const TEMPLATES = [
             fontSize: 38,
             bgColor: 'transparent',
             padding: 10,
-            borderRadius: 0
-          },
-          {
-            id: 'wper-2',
-            type: 'subheading',
-            content: 'طراح تجربه کاربری (UI/UX) و مشاور برندینگ دیجیتال',
-            align: 'center',
-            color: '#6366f1',
-            fontSize: 20,
-            bgColor: 'transparent',
-            padding: 8,
             borderRadius: 0
           }
         ]
@@ -555,21 +546,10 @@ const TEMPLATES = [
           {
             id: 'wa-1',
             type: 'heading',
-            content: 'اطلاعیه به‌روزرسانی نسخه جدید پلتفرم',
+            content: 'اطلاعیه به‌روزرسانی نسخه جدید پلتفرم نکسورا',
             align: 'center',
             color: '#78350f',
             fontSize: 34,
-            bgColor: 'transparent',
-            padding: 12,
-            borderRadius: 0
-          },
-          {
-            id: 'wa-2',
-            type: 'text',
-            content: 'کاربران گرامی، زیرساخت سرورهای ما به نسل جدید ارتقا یافت و سرعت بارگذاری صفحات تا ۳ برابر افزایش پیدا کرد.',
-            align: 'center',
-            color: '#92400e',
-            fontSize: 17,
             bgColor: 'transparent',
             padding: 12,
             borderRadius: 0
@@ -597,17 +577,6 @@ const TEMPLATES = [
             align: 'right',
             color: '#0f172a',
             fontSize: 34,
-            bgColor: 'transparent',
-            padding: 12,
-            borderRadius: 0
-          },
-          {
-            id: 'wart-3',
-            type: 'text',
-            content: 'یک صفحه فرود موفق باید در کمتر از ۳ ثانیه پیام اصلی شما را به بازدیدکننده منتقل کند.',
-            align: 'right',
-            color: '#334155',
-            fontSize: 17,
             bgColor: 'transparent',
             padding: 12,
             borderRadius: 0
@@ -672,7 +641,7 @@ const INITIAL_MEDIA = [
 const INITIAL_USERS = [
   {
     id: 'u-1',
-    name: 'مدیر اصلی سیستم',
+    name: 'مدیر اصلی نکسورا',
     username: 'admin',
     password: 'admin123',
     role: 'admin',
@@ -682,11 +651,12 @@ const INITIAL_USERS = [
 ];
 
 const DEFAULT_SITE_SETTINGS = {
-  siteName: 'پلتفرم صفحه‌ساز حرفه‌ای',
+  siteName: 'Nexora | نکسورا',
   defaultFont: "'Vazirmatn', sans-serif",
-  faviconUrl: '',
+  faviconUrl: NEXORA_LOGO_DATA_URL,
+  logoUrl: NEXORA_LOGO_DATA_URL,
   analyticsCode: '',
-  footerText: 'تمامی حقوق برای این وب‌سایت محفوظ است.'
+  footerText: 'قدرت‌گرفته از پلتفرم صفحه‌ساز Nexora | نکسورا'
 };
 
 const WIDGET_TYPES = [
@@ -719,49 +689,96 @@ const slugify = (text) => {
     .replace(/--+/g, '-');
 };
 
-// --- Helper to get WordPress Page Theme Wrapper Styles ---
-function getThemeLayoutClasses(pageTheme) {
-  switch (pageTheme) {
+// --- Helper to resolve Built-in OR Custom WordPress Page Theme Styles ---
+function resolvePageThemeConfig(pageThemeId, customThemes = [], embeddedCustomTheme = null) {
+  const customObj =
+    embeddedCustomTheme ||
+    customThemes.find((t) => t.id === pageThemeId);
+
+  if (customObj) {
+    const isBoxed = customObj.layout === 'boxed';
+    return {
+      isCustom: true,
+      customObj,
+      outerClass: isBoxed ? 'py-6 md:py-10 px-3 md:px-6' : '',
+      outerStyle: {
+        backgroundColor: customObj.outerBg || '#f1f5f9',
+        color: customObj.textColor || '#0f172a'
+      },
+      innerClass: isBoxed
+        ? 'max-w-5xl mx-auto rounded-2xl shadow-xl overflow-hidden border'
+        : 'w-full',
+      innerStyle: {
+        backgroundColor: customObj.surfaceBg || '#ffffff',
+        borderColor: customObj.accentColor || '#6d28d9',
+        borderTopWidth: customObj.topBar ? '5px' : '1px'
+      },
+      sectionOverrideClass: customObj.overrideSectionBg ? '!bg-transparent' : '',
+      customCss: customObj.customCss || ''
+    };
+  }
+
+  switch (pageThemeId) {
     case 'wp-boxed':
       return {
-        outer: 'bg-slate-200/80 py-6 md:py-10 px-3 md:px-6',
-        inner: 'max-w-5xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden',
-        sectionOverride: ''
+        isCustom: false,
+        outerClass: 'bg-slate-200/80 py-6 md:py-10 px-3 md:px-6',
+        outerStyle: {},
+        innerClass: 'max-w-5xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden',
+        innerStyle: {},
+        sectionOverrideClass: '',
+        customCss: ''
       };
     case 'wp-editorial':
       return {
-        outer: 'bg-[#f6f3eb] py-6 md:py-10 px-3 md:px-6 text-stone-900',
-        inner: 'max-w-4xl mx-auto bg-[#fffdf9] rounded-xl shadow-md border-t-4 border-amber-700 border-x border-b border-stone-200 overflow-hidden',
-        sectionOverride: '!bg-transparent'
+        isCustom: false,
+        outerClass: 'bg-[#f6f3eb] py-6 md:py-10 px-3 md:px-6 text-stone-900',
+        outerStyle: {},
+        innerClass: 'max-w-4xl mx-auto bg-[#fffdf9] rounded-xl shadow-md border-t-4 border-purple-700 border-x border-b border-stone-200 overflow-hidden',
+        innerStyle: {},
+        sectionOverrideClass: '!bg-transparent',
+        customCss: ''
       };
     case 'wp-dark':
       return {
-        outer: 'bg-zinc-950 text-zinc-100',
-        inner: 'w-full bg-zinc-950 text-zinc-100',
-        sectionOverride: '!bg-zinc-900/90 !text-zinc-100 border-b border-zinc-800'
+        isCustom: false,
+        outerClass: 'bg-zinc-950 text-zinc-100',
+        outerStyle: {},
+        innerClass: 'w-full bg-zinc-950 text-zinc-100',
+        innerStyle: {},
+        sectionOverrideClass: '!bg-zinc-900/90 !text-zinc-100 border-b border-zinc-800',
+        customCss: ''
       };
     case 'wp-glass':
       return {
-        outer: 'bg-gradient-to-br from-indigo-100 via-sky-50 to-purple-100 py-8 px-4',
-        inner: 'max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/70 backdrop-blur-md bg-white/75',
-        sectionOverride: '!bg-white/60 backdrop-blur-sm'
+        isCustom: false,
+        outerClass: 'bg-gradient-to-br from-purple-100 via-indigo-50 to-sky-100 py-8 px-4',
+        outerStyle: {},
+        innerClass: 'max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/70 backdrop-blur-md bg-white/75',
+        innerStyle: {},
+        sectionOverrideClass: '!bg-white/60 backdrop-blur-sm',
+        customCss: ''
       };
     default:
       return {
-        outer: 'bg-white',
-        inner: 'w-full bg-white',
-        sectionOverride: ''
+        isCustom: false,
+        outerClass: 'bg-white',
+        outerStyle: {},
+        innerClass: 'w-full bg-white',
+        innerStyle: {},
+        sectionOverrideClass: '',
+        customCss: ''
       };
   }
 }
 
 // --- Standalone Widget Renderer ---
-function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont, pageTheme }) {
+function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont, pageTheme, customThemeObj }) {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formValues, setFormValues] = useState({});
 
   const appliedFont = widget.fontFamily || defaultFont || "'Vazirmatn', sans-serif";
-  const isDarkTheme = pageTheme === 'wp-dark';
+  const isDarkTheme = pageTheme === 'wp-dark' || (customThemeObj && customThemeObj.isDark);
 
   const wrapperStyle = {
     backgroundColor: widget.bgColor || 'transparent',
@@ -774,6 +791,9 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
   };
 
   const resolveTextColor = (defaultLight) => {
+    if (customThemeObj && customThemeObj.textColor && (!widget.color || widget.color === '#0f172a' || widget.color === '#334155' || widget.color === '#475569')) {
+      return customThemeObj.textColor;
+    }
     if (isDarkTheme && (!widget.color || widget.color === '#0f172a' || widget.color === '#334155' || widget.color === '#475569')) {
       return '#f4f4f5';
     }
@@ -872,7 +892,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             className="p-4 border border-slate-200/60 flex flex-col gap-2.5 max-w-xl mx-auto"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0">
                 <Volume2 className="w-4 h-4" />
               </div>
               <div className="text-start">
@@ -900,7 +920,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
               href={isEditing ? undefined : widget.url || '#'}
               onClick={(e) => isEditing && e.preventDefault()}
               style={{
-                backgroundColor: widget.bgColor || '#2563eb',
+                backgroundColor: widget.bgColor || customThemeObj?.accentColor || '#6d28d9',
                 color: widget.color || '#ffffff',
                 fontSize: `${widget.fontSize || 16}px`,
                 fontFamily: appliedFont,
@@ -1045,13 +1065,14 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                       value={formValues[f] || ''}
                       onChange={(e) => setFormValues((prev) => ({ ...prev, [f]: e.target.value }))}
                       placeholder={f}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
                 ))}
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition"
+                  style={{ backgroundColor: customThemeObj?.accentColor || '#6d28d9' }}
+                  className="w-full py-2.5 px-4 hover:opacity-95 text-white font-semibold rounded-lg text-sm transition"
                 >
                   {widget.buttonText || (lang === 'fa' ? 'ارسال اطلاعات' : 'Submit')}
                 </button>
@@ -1089,8 +1110,8 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
       style={wrapperStyle}
       className={`relative group cursor-pointer transition-all ${
         isSelected
-          ? 'ring-2 ring-blue-600 ring-offset-2'
-          : 'hover:ring-1 hover:ring-blue-400'
+          ? 'ring-2 ring-purple-600 ring-offset-2'
+          : 'hover:ring-1 hover:ring-purple-400'
       }`}
     >
       {renderContent()}
@@ -1099,7 +1120,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
 }
 
 // --- Public Standalone Page Viewer ---
-function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission, onBackToAdmin }) {
+function PublicPageView({ page, siteSettings, customThemes, onIncrementView, onSaveSubmission, onBackToAdmin }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState('');
@@ -1131,7 +1152,7 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
           onClick={onBackToAdmin}
           className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800"
         >
-          ورود به پنل مدیریت
+          ورود به پنل مدیریت نکسورا
         </button>
       </div>
     );
@@ -1163,12 +1184,12 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="رمز عبور صفحه..."
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-purple-600"
             />
             {error && <p className="text-xs text-red-600 font-medium">{error}</p>}
             <button
               type="submit"
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition"
+              className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition"
             >
               مشاهده صفحه
             </button>
@@ -1180,20 +1201,25 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
 
   const activeDefaultFont = page.defaultFont || siteSettings?.defaultFont || "'Vazirmatn', sans-serif";
   const footerText = page.footerText !== undefined ? page.footerText : siteSettings?.footerText;
-  const themeClasses = getThemeLayoutClasses(page.pageTheme);
+  const themeConfig = resolvePageThemeConfig(page.pageTheme, customThemes, page.customThemeObj);
 
   return (
-    <div dir={page.direction || 'rtl'} style={{ fontFamily: activeDefaultFont }} className={`min-h-screen flex flex-col ${themeClasses.outer}`}>
-      <div className={`flex-1 ${themeClasses.inner}`}>
+    <div
+      dir={page.direction || 'rtl'}
+      style={{ fontFamily: activeDefaultFont, ...themeConfig.outerStyle }}
+      className={`min-h-screen flex flex-col ${themeConfig.outerClass}`}
+    >
+      {themeConfig.customCss && <style>{themeConfig.customCss}</style>}
+      <div style={themeConfig.innerStyle} className={`flex-1 nexora-page-container ${themeConfig.innerClass}`}>
         {page.sections.map((sec) => (
           <section
             key={sec.id}
             style={{
-              backgroundColor: sec.bgColor || '#ffffff',
+              backgroundColor: themeConfig.sectionOverrideClass ? 'transparent' : (sec.bgColor || '#ffffff'),
               paddingTop: `${sec.paddingY ?? 48}px`,
               paddingBottom: `${sec.paddingY ?? 48}px`
             }}
-            className={`w-full px-4 md:px-8 ${themeClasses.sectionOverride}`}
+            className={`w-full px-4 md:px-8 nexora-page-section ${themeConfig.sectionOverrideClass}`}
           >
             <div
               className={`max-w-6xl mx-auto grid gap-6 ${
@@ -1211,6 +1237,7 @@ function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission,
                   isEditing={false}
                   defaultFont={activeDefaultFont}
                   pageTheme={page.pageTheme}
+                  customThemeObj={themeConfig.customObj}
                   lang={page.direction === 'ltr' ? 'en' : 'fa'}
                   onFormSubmit={(formTitle, values) =>
                     onSaveSubmission({
@@ -1258,27 +1285,63 @@ export default function App() {
 
   // Users & Granular Role-Based Access State
   const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('pb_users_v2');
+    const saved = localStorage.getItem('nexora_users_v1');
     return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
 
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('pb_current_user_v2');
+    const saved = localStorage.getItem('nexora_current_user_v1');
     return saved ? JSON.parse(saved) : null;
   });
 
   // Website Global Settings State
   const [siteSettings, setSiteSettings] = useState(() => {
-    const saved = localStorage.getItem('pb_site_settings_v1');
+    const saved = localStorage.getItem('nexora_site_settings_v1');
     return saved ? JSON.parse(saved) : DEFAULT_SITE_SETTINGS;
   });
+
+  // Custom WordPress Themes State (User can create & apply unlimited custom themes)
+  const [customThemes, setCustomThemes] = useState(() => {
+    const saved = localStorage.getItem('nexora_custom_themes_v1');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'custom-wp-royal',
+        name: 'قالب اختصاصی نکسورا رویال (Royal Purple)',
+        desc: 'قالب جعبه‌ای با حاشیه بنفش برند نکسورا و پس‌زمینه لطیف',
+        isCustom: true,
+        layout: 'boxed',
+        outerBg: '#ede9fe',
+        surfaceBg: '#ffffff',
+        textColor: '#1e1b4b',
+        accentColor: '#7c3aed',
+        topBar: true,
+        overrideSectionBg: true,
+        isDark: false,
+        customCss: ''
+      }
+    ];
+  });
+
+  // Custom Theme Builder Modal / Form State
+  const [newThemeName, setNewThemeName] = useState('');
+  const [newThemeDesc, setNewThemeDesc] = useState('');
+  const [newThemeLayout, setNewThemeLayout] = useState('boxed');
+  const [newThemeOuterBg, setNewThemeOuterBg] = useState('#f1f5f9');
+  const [newThemeSurfaceBg, setNewThemeSurfaceBg] = useState('#ffffff');
+  const [newThemeTextColor, setNewThemeTextColor] = useState('#0f172a');
+  const [newThemeAccentColor, setNewThemeAccentColor] = useState('#7c3aed');
+  const [newThemeTopBar, setNewThemeTopBar] = useState(true);
+  const [newThemeOverrideBg, setNewThemeOverrideBg] = useState(true);
+  const [newThemeIsDark, setNewThemeIsDark] = useState(false);
+  const [newThemeCustomCss, setNewThemeCustomCss] = useState('');
+  const [showQuickThemeModal, setShowQuickThemeModal] = useState(false);
 
   // Login Form State (Empty by default)
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
 
-  // New User Form State (Admin Panel)
+  // New User Form State
   const [newUserName, setNewUserName] = useState('');
   const [newUserUsername, setNewUserUsername] = useState('');
   const [newUserPass, setNewUserPass] = useState('');
@@ -1288,21 +1351,21 @@ export default function App() {
 
   // Pages, Submissions & Media State
   const [pages, setPages] = useState(() => {
-    const saved = localStorage.getItem('pb_pages_v1');
+    const saved = localStorage.getItem('nexora_pages_v1');
     if (saved) return JSON.parse(saved);
     return [
       {
         id: 'page-demo-1',
         title: 'معرفی هدفون استودیویی پرو',
         slug: 'studio-headphones',
-        pageTheme: 'default',
+        pageTheme: 'custom-wp-royal',
         category: 'فروشگاهی',
         status: 'published',
         visibility: 'public',
         password: '',
         views: 124,
         updatedAt: '۱۴۰۴/۰۱/۲۰',
-        metaTitle: 'خرید هدفون استودیویی پرو | ارسال رایگان',
+        metaTitle: 'خرید هدفون استودیویی پرو | Nexora',
         metaDescription: 'بهترین کیفیت صدا با حذف نویز هوشمند',
         direction: 'rtl',
         sections: TEMPLATES[1].sections
@@ -1311,12 +1374,12 @@ export default function App() {
   });
 
   const [submissions, setSubmissions] = useState(() => {
-    const saved = localStorage.getItem('pb_submissions_v1');
+    const saved = localStorage.getItem('nexora_submissions_v1');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [media, setMedia] = useState(() => {
-    const saved = localStorage.getItem('pb_media_v1');
+    const saved = localStorage.getItem('nexora_media_v1');
     return saved ? JSON.parse(saved) : INITIAL_MEDIA;
   });
 
@@ -1325,41 +1388,46 @@ export default function App() {
   const [mediaUrlType, setMediaUrlType] = useState('video');
 
   useEffect(() => {
-    localStorage.setItem('pb_users_v2', JSON.stringify(users));
+    localStorage.setItem('nexora_users_v1', JSON.stringify(users));
     if (currentUser) {
       const updatedMe = users.find((u) => u.id === currentUser.id);
       if (updatedMe) {
         setCurrentUser(updatedMe);
-        localStorage.setItem('pb_current_user_v2', JSON.stringify(updatedMe));
+        localStorage.setItem('nexora_current_user_v1', JSON.stringify(updatedMe));
       }
     }
   }, [users]);
 
+  // Apply Nexora Favicon & Page Title automatically
   useEffect(() => {
-    localStorage.setItem('pb_site_settings_v1', JSON.stringify(siteSettings));
-    if (siteSettings.faviconUrl) {
-      let link = document.querySelector("link[rel~='icon']");
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.head.appendChild(link);
-      }
-      link.href = siteSettings.faviconUrl;
+    localStorage.setItem('nexora_site_settings_v1', JSON.stringify(siteSettings));
+    document.title = siteSettings.siteName || 'Nexora | نکسورا';
+    const iconHref = siteSettings.faviconUrl || NEXORA_LOGO_DATA_URL;
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
     }
+    link.href = iconHref;
   }, [siteSettings]);
 
   useEffect(() => {
-    localStorage.setItem('pb_pages_v1', JSON.stringify(pages));
+    localStorage.setItem('nexora_custom_themes_v1', JSON.stringify(customThemes));
+  }, [customThemes]);
+
+  useEffect(() => {
+    localStorage.setItem('nexora_pages_v1', JSON.stringify(pages));
   }, [pages]);
 
   useEffect(() => {
-    localStorage.setItem('pb_submissions_v1', JSON.stringify(submissions));
+    localStorage.setItem('nexora_submissions_v1', JSON.stringify(submissions));
   }, [submissions]);
 
   useEffect(() => {
     try {
       const safeMedia = media.filter((m) => !m.url.startsWith('blob:') && m.url.length < 1500000);
-      localStorage.setItem('pb_media_v1', JSON.stringify(safeMedia));
+      localStorage.setItem('nexora_media_v1', JSON.stringify(safeMedia));
     } catch (e) {}
   }, [media]);
 
@@ -1403,6 +1471,39 @@ export default function App() {
     setTimeout(() => setToast(''), 4000);
   };
 
+  const allAvailableThemes = [...BUILTIN_WP_THEMES, ...customThemes];
+
+  const handleCreateCustomTheme = (e, applyToEditingPage = false) => {
+    e.preventDefault();
+    if (!newThemeName.trim()) return;
+    const created = {
+      id: `custom-wp-${generateId()}`,
+      name: newThemeName.trim(),
+      desc: newThemeDesc.trim() || 'قالب وردپرس سفارشی',
+      isCustom: true,
+      layout: newThemeLayout,
+      outerBg: newThemeOuterBg,
+      surfaceBg: newThemeSurfaceBg,
+      textColor: newThemeTextColor,
+      accentColor: newThemeAccentColor,
+      topBar: newThemeTopBar,
+      overrideSectionBg: newThemeOverrideBg,
+      isDark: newThemeIsDark,
+      customCss: newThemeCustomCss
+    };
+    setCustomThemes((prev) => [created, ...prev]);
+    if (applyToEditingPage && editingPageId) {
+      setPages((prev) =>
+        prev.map((p) => (p.id === editingPageId ? { ...p, pageTheme: created.id } : p))
+      );
+    }
+    setNewThemeName('');
+    setNewThemeDesc('');
+    setNewThemeCustomCss('');
+    setShowQuickThemeModal(false);
+    showToast(`قالب وردپرس «${created.name}» ساخته شد و آماده استفاده است.`);
+  };
+
   // Public Route Handler
   if (publicSlug || urlEncodedPage) {
     const targetPage =
@@ -1413,6 +1514,7 @@ export default function App() {
       <PublicPageView
         page={targetPage}
         siteSettings={siteSettings}
+        customThemes={customThemes}
         onIncrementView={(id) => {
           setPages((prev) => prev.map((p) => (p.id === id ? { ...p, views: (p.views || 0) + 1 } : p)));
         }}
@@ -1428,18 +1530,20 @@ export default function App() {
     );
   }
 
-  // Login Screen (Empty inputs by default)
+  // Login Screen (Empty inputs by default + Nexora Logo)
   if (!currentUser) {
     return (
-      <div dir="rtl" style={{ fontFamily: siteSettings.defaultFont }} className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
-              <Layout className="w-6 h-6" />
-            </div>
+      <div dir="rtl" style={{ fontFamily: siteSettings.defaultFont }} className="min-h-screen bg-[#07021c] flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-purple-100">
+          <div className="flex items-center gap-3.5 mb-6">
+            <img
+              src={siteSettings.logoUrl || NEXORA_LOGO_DATA_URL}
+              alt="Nexora Logo"
+              className="w-14 h-14 rounded-2xl shadow-md object-cover shrink-0"
+            />
             <div>
               <h1 className="text-xl font-black text-slate-900">{siteSettings.siteName}</h1>
-              <p className="text-xs text-slate-500">ورود به پنل مدیریت و طراحی بصری</p>
+              <p className="text-xs text-slate-500 mt-0.5">پلتفرم هوشمند صفحه‌ساز و طراحی بصری</p>
             </div>
           </div>
           <form
@@ -1453,7 +1557,7 @@ export default function App() {
                   ...matched,
                   permissions: matched.permissions || ROLE_PRESETS[matched.role] || ROLE_PRESETS.author
                 };
-                localStorage.setItem('pb_current_user_v2', JSON.stringify(userWithPerms));
+                localStorage.setItem('nexora_current_user_v1', JSON.stringify(userWithPerms));
                 setCurrentUser(userWithPerms);
                 setLoginError('');
               } else {
@@ -1470,7 +1574,7 @@ export default function App() {
                 value={loginUser}
                 onChange={(e) => setLoginUser(e.target.value)}
                 placeholder="نام کاربری را وارد کنید"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
             </div>
             <div>
@@ -1481,16 +1585,16 @@ export default function App() {
                 value={loginPass}
                 onChange={(e) => setLoginPass(e.target.value)}
                 placeholder="رمز عبور را وارد کنید"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
               />
             </div>
             {loginError && <p className="text-xs text-red-600 font-medium">{loginError}</p>}
             <button
               type="submit"
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition"
+              className="w-full py-3 bg-gradient-to-l from-purple-700 to-indigo-600 hover:opacity-95 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 transition shadow-md"
             >
               <LogIn className="w-4 h-4" />
-              ورود به داشبورد
+              ورود به داشبورد نکسورا
             </button>
           </form>
         </div>
@@ -1512,7 +1616,7 @@ export default function App() {
     const newPage = {
       id: newId,
       title,
-      slug: '', // Completely empty by default; user must enter it before publishing
+      slug: '', // Empty by default; user must enter it before publishing
       pageTheme: 'default',
       category: tpl.category,
       status: 'draft',
@@ -1554,7 +1658,7 @@ export default function App() {
       ...JSON.parse(JSON.stringify(page)),
       id: `page-${generateId()}`,
       title: `${page.title} (کپی)`,
-      slug: '', // Must be entered manually by user before publishing
+      slug: '',
       status: 'draft',
       views: 0
     };
@@ -1573,7 +1677,7 @@ export default function App() {
 
   const getPublicUrl = (pageObj) => {
     const base = `${window.location.origin}${window.location.pathname}`;
-    const encoded = encodePageData(pageObj, siteSettings);
+    const encoded = encodePageData(pageObj, siteSettings, customThemes);
     return encoded ? `${base}?page=${pageObj.slug}&d=${encodeURIComponent(encoded)}` : `${base}?page=${pageObj.slug}`;
   };
 
@@ -1593,7 +1697,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${page.slug || 'page'}.json`;
+    a.download = `${page.slug || 'nexora-page'}.json`;
     a.click();
   };
 
@@ -1692,7 +1796,7 @@ export default function App() {
       image: { url: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=900&q=80', caption: 'توضیح تصویر', borderRadius: 12 },
       video: { url: '' },
       audio: { title: 'پیام صوتی / ویس', caption: 'برای پخش روی دکمه Play کلیک کنید', url: '', bgColor: '#f1f5f9', borderRadius: 16 },
-      button: { label: 'دکمه اقدام', url: '#', bgColor: '#2563eb', color: '#ffffff', fontSize: 16, padding: 12, borderRadius: 10, align: 'center', fontFamily: '' },
+      button: { label: 'دکمه اقدام', url: '#', bgColor: '#6d28d9', color: '#ffffff', fontSize: 16, padding: 12, borderRadius: 10, align: 'center', fontFamily: '' },
       card: { title: 'عنوان کارت', content: 'توضیحات مختصر درباره این کارت محتوایی', bgColor: '#f8fafc', color: '#0f172a', padding: 24, borderRadius: 16, fontFamily: '' },
       gallery: { images: INITIAL_MEDIA.filter((m) => m.type === 'image').map((m) => m.url) },
       table: { headers: ['ویژگی', 'توضیحات'], rows: [['سرعت بارگذاری', 'زیر ۱ ثانیه'], ['پشتیبانی', '۲۴ ساعته']] },
@@ -1700,7 +1804,7 @@ export default function App() {
       form: { title: 'فرم ثبت درخواست', buttonText: 'ارسال فرم', fields: ['نام و نام خانوادگی', 'شماره تماس'], bgColor: '#f8fafc', padding: 24, borderRadius: 16, fontFamily: '' },
       divider: { color: '#cbd5e1' },
       spacer: { height: 48 },
-      html: { content: '<div style="padding:20px;background:#eff6ff;border-radius:12px;text-align:center;font-weight:bold;">کد HTML سفارشی شما</div>' }
+      html: { content: '<div style="padding:20px;background:#f5f3ff;border-radius:12px;text-align:center;font-weight:bold;">کد HTML سفارشی شما</div>' }
     };
 
     const newWidget = {
@@ -1799,10 +1903,11 @@ export default function App() {
 
   // --- VISUAL EDITOR VIEW ---
   if (activeTab === 'editor' && currentPage) {
-    const themeClasses = getThemeLayoutClasses(currentPage.pageTheme);
+    const themeConfig = resolvePageThemeConfig(currentPage.pageTheme, customThemes);
 
     return (
       <div dir={dir} style={{ fontFamily: siteSettings.defaultFont }} className="h-screen flex flex-col bg-slate-100 overflow-hidden">
+        {themeConfig.customCss && <style>{themeConfig.customCss}</style>}
         {/* Top Editor Toolbar */}
         <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-3">
@@ -1811,14 +1916,19 @@ export default function App() {
               className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 flex items-center gap-1.5 text-sm font-medium"
             >
               <ArrowRight className={`w-4 h-4 ${dir === 'ltr' ? 'rotate-180' : ''}`} />
-              {lang === 'fa' ? 'داشبورد' : 'Dashboard'}
+              {lang === 'fa' ? 'داشبورد نکسورا' : 'Nexora Dashboard'}
             </button>
             <div className="h-5 w-px bg-slate-200" />
+            <img
+              src={siteSettings.logoUrl || NEXORA_LOGO_DATA_URL}
+              alt="Nexora"
+              className="w-7 h-7 rounded-lg object-cover hidden sm:block"
+            />
             <input
               type="text"
               value={currentPage.title}
               onChange={(e) => updateCurrentPage((p) => ({ ...p, title: e.target.value }), false)}
-              className="font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-600 focus:outline-none px-1 text-sm md:text-base"
+              className="font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-purple-600 focus:outline-none px-1 text-sm md:text-base"
             />
             <span
               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -1837,21 +1947,21 @@ export default function App() {
           <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => setViewport('desktop')}
-              className={`p-1.5 rounded-lg ${viewport === 'desktop' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`p-1.5 rounded-lg ${viewport === 'desktop' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-500'}`}
               title="Desktop"
             >
               <Monitor className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewport('tablet')}
-              className={`p-1.5 rounded-lg ${viewport === 'tablet' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`p-1.5 rounded-lg ${viewport === 'tablet' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-500'}`}
               title="Tablet"
             >
               <Tablet className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewport('mobile')}
-              className={`p-1.5 rounded-lg ${viewport === 'mobile' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`p-1.5 rounded-lg ${viewport === 'mobile' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-500'}`}
               title="Mobile"
             >
               <Smartphone className="w-4 h-4" />
@@ -1888,7 +1998,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={handlePublishAndCopy}
-                  className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1.5 shadow-sm"
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center gap-1.5 shadow-sm"
                 >
                   <Globe className="w-3.5 h-3.5" />
                   {lang === 'fa' ? 'انتشار و کپی لینک' : 'Publish & Copy Link'}
@@ -1915,9 +2025,9 @@ export default function App() {
                   <button
                     key={cols}
                     onClick={() => addSection(cols)}
-                    className="p-2 border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-xl flex flex-col items-center gap-1 text-xs font-medium text-slate-700 transition"
+                    className="p-2 border border-slate-200 hover:border-purple-500 hover:bg-purple-50 rounded-xl flex flex-col items-center gap-1 text-xs font-medium text-slate-700 transition"
                   >
-                    <Columns className="w-4 h-4 text-blue-600" />
+                    <Columns className="w-4 h-4 text-purple-600" />
                     <span>{cols} {lang === 'fa' ? 'ستون' : 'Col'}</span>
                   </button>
                 ))}
@@ -1942,9 +2052,9 @@ export default function App() {
                           addSection(1);
                         }
                       }}
-                      className="p-2.5 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/60 flex flex-col items-center justify-center gap-1.5 text-center transition group"
+                      className="p-2.5 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50/60 flex flex-col items-center justify-center gap-1.5 text-center transition group"
                     >
-                      <Icon className="w-5 h-5 text-slate-600 group-hover:text-blue-600" />
+                      <Icon className="w-5 h-5 text-slate-600 group-hover:text-purple-600" />
                       <span className="text-xs font-medium text-slate-700">{item.label[lang]}</span>
                     </button>
                   );
@@ -1967,11 +2077,12 @@ export default function App() {
                     ? '390px'
                     : viewport === 'tablet'
                     ? '768px'
-                    : '100%'
+                    : '100%',
+                ...themeConfig.outerStyle
               }}
-              className={`max-w-5xl min-h-full shadow-xl rounded-xl overflow-hidden transition-all duration-300 ${themeClasses.outer}`}
+              className={`max-w-5xl min-h-full shadow-xl rounded-xl overflow-hidden transition-all duration-300 ${themeConfig.outerClass}`}
             >
-              <div className={themeClasses.inner}>
+              <div style={themeConfig.innerStyle} className={`nexora-page-container ${themeConfig.innerClass}`}>
                 {currentPage.sections.map((sec, sIdx) => (
                   <div
                     key={sec.id}
@@ -1981,12 +2092,12 @@ export default function App() {
                       setSelectedWidgetId(null);
                     }}
                     style={{
-                      backgroundColor: sec.bgColor || '#ffffff',
+                      backgroundColor: themeConfig.sectionOverrideClass ? 'transparent' : (sec.bgColor || '#ffffff'),
                       paddingTop: `${sec.paddingY ?? 48}px`,
                       paddingBottom: `${sec.paddingY ?? 48}px`
                     }}
-                    className={`relative px-6 border-b border-dashed transition ${themeClasses.sectionOverride} ${
-                      selectedSectionId === sec.id ? 'border-blue-500 ring-1 ring-inset ring-blue-400' : 'border-slate-200'
+                    className={`relative px-6 border-b border-dashed transition nexora-page-section ${themeConfig.sectionOverrideClass} ${
+                      selectedSectionId === sec.id ? 'border-purple-500 ring-1 ring-inset ring-purple-400' : 'border-slate-200'
                     }`}
                   >
                     {/* Section Floating Controls */}
@@ -2019,11 +2130,11 @@ export default function App() {
                       {sec.widgets.map((w, wIdx) => (
                         <div key={w.id} className="relative group">
                           {selectedWidgetId === w.id && (
-                            <div className="absolute -top-7 right-0 flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
-                              <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-blue-700 rounded">
+                            <div className="absolute -top-7 right-0 flex items-center gap-1 bg-purple-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
+                              <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-purple-700 rounded">
                                 <MoveUp className="w-3 h-3" />
                               </button>
-                              <button onClick={() => moveWidget(sec.id, wIdx, 1)} className="p-0.5 hover:bg-blue-700 rounded">
+                              <button onClick={() => moveWidget(sec.id, wIdx, 1)} className="p-0.5 hover:bg-purple-700 rounded">
                                 <MoveDown className="w-3 h-3" />
                               </button>
                               <button
@@ -2036,7 +2147,7 @@ export default function App() {
                                     )
                                   }));
                                 }}
-                                className="p-0.5 hover:bg-blue-700 rounded"
+                                className="p-0.5 hover:bg-purple-700 rounded"
                               >
                                 <Copy className="w-3 h-3" />
                               </button>
@@ -2051,6 +2162,7 @@ export default function App() {
                             isSelected={selectedWidgetId === w.id}
                             defaultFont={siteSettings.defaultFont}
                             pageTheme={currentPage.pageTheme}
+                            customThemeObj={themeConfig.customObj}
                             onSelect={() => {
                               setSelectedSectionId(sec.id);
                               setSelectedWidgetId(w.id);
@@ -2074,7 +2186,7 @@ export default function App() {
                 onClick={() => setEditorRightTab('style')}
                 className={`py-3 text-xs font-bold border-b-2 transition ${
                   editorRightTab === 'style'
-                    ? 'border-blue-600 text-blue-600'
+                    ? 'border-purple-600 text-purple-600'
                     : 'border-transparent text-slate-500'
                 }`}
               >
@@ -2084,7 +2196,7 @@ export default function App() {
                 onClick={() => setEditorRightTab('settings')}
                 className={`py-3 text-xs font-bold border-b-2 transition relative ${
                   editorRightTab === 'settings'
-                    ? 'border-blue-600 text-blue-600'
+                    ? 'border-purple-600 text-purple-600'
                     : 'border-transparent text-slate-500'
                 }`}
               >
@@ -2117,37 +2229,56 @@ export default function App() {
                         setSlugErrorHighlight(false);
                         updateCurrentPage((p) => ({ ...p, slug: slugify(e.target.value) }), false);
                       }}
-                      placeholder="مثلاً: my-first-page"
+                      placeholder="مثلاً: my-nexora-page"
                       className={`w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 ${
                         slugErrorHighlight || !currentPage.slug
                           ? 'border-rose-400 focus:ring-rose-500'
-                          : 'border-slate-300 focus:ring-blue-600'
+                          : 'border-slate-300 focus:ring-purple-600'
                       }`}
                     />
                     <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                      این فیلد به‌صورت پیش‌فرض خالی است. برای انتشار و دریافت لینک، نام انگلیسی یا فارسی دلخواه را وارد کنید.
+                      این فیلد به‌صورت پیش‌فرض خالی است. برای انتشار و دریافت لینک، آدرس دلخواه را وارد کنید.
                     </p>
                   </div>
 
-                  {/* WordPress-style Page Template Selector */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      قالب کلی صفحه (WordPress Page Template)
+                  {/* WordPress-style Page Template Selector + Button to Add Custom Theme */}
+                  <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/80 space-y-2">
+                    <label className="block text-xs font-bold text-purple-950">
+                      قالب کلی صفحه (WordPress Theme)
                     </label>
                     <select
                       value={currentPage.pageTheme || 'default'}
                       onChange={(e) => updateCurrentPage((p) => ({ ...p, pageTheme: e.target.value }), false)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold bg-white"
+                      className="w-full px-3 py-2 border border-purple-200 rounded-lg text-xs font-semibold bg-white"
                     >
-                      {WP_PAGE_THEMES.map((theme) => (
-                        <option key={theme.id} value={theme.id}>
-                          {theme.name}
-                        </option>
-                      ))}
+                      <optgroup label="قالب‌های پیش‌فرض نکسورا">
+                        {BUILTIN_WP_THEMES.map((theme) => (
+                          <option key={theme.id} value={theme.id}>
+                            {theme.name}
+                          </option>
+                        ))}
+                      </optgroup>
+                      {customThemes.length > 0 && (
+                        <optgroup label="قالب‌های دستی ساخته‌شده شما">
+                          {customThemes.map((theme) => (
+                            <option key={theme.id} value={theme.id}>
+                              ★ {theme.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      {WP_PAGE_THEMES.find((t) => t.id === (currentPage.pageTheme || 'default'))?.desc}
+                    <p className="text-[11px] text-slate-600">
+                      {allAvailableThemes.find((t) => t.id === (currentPage.pageTheme || 'default'))?.desc}
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickThemeModal(true)}
+                      className="w-full py-1.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                    >
+                      <Paintbrush className="w-3.5 h-3.5" />
+                      افزودن دستی قالب وردپرس جدید
+                    </button>
                   </div>
 
                   <div>
@@ -2230,7 +2361,7 @@ export default function App() {
                 </>
               ) : selectedWidget ? (
                 <>
-                  <div className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-lg">
+                  <div className="text-xs font-bold text-purple-700 bg-purple-50 px-3 py-2 rounded-lg">
                     ویرایش المان: {selectedWidget.type}
                   </div>
 
@@ -2257,8 +2388,8 @@ export default function App() {
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-700 mb-1">آپلود فایل صوتی (MP3/WAV)</label>
-                        <label className="w-full py-2 px-3 bg-white border border-slate-300 hover:border-blue-500 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
-                          <Upload className="w-3.5 h-3.5 text-blue-600" />
+                        <label className="w-full py-2 px-3 bg-white border border-slate-300 hover:border-purple-500 rounded-lg text-xs font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer">
+                          <Upload className="w-3.5 h-3.5 text-purple-600" />
                           انتخاب فایل صوتی از دستگاه
                           <input
                             type="file"
@@ -2313,7 +2444,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Content Controls based on widget type */}
                   {['heading', 'subheading', 'text', 'html'].includes(selectedWidget.type) && (
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">متن / محتوا</label>
@@ -2372,7 +2502,7 @@ export default function App() {
                           }
                           className="mt-2 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
                         >
-                          <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
+                          <FolderOpen className="w-3.5 h-3.5 text-purple-600" />
                           {selectedWidget.type === 'video'
                             ? 'انتخاب ویدئو از کتابخانه رسانه'
                             : 'انتخاب تصویر از کتابخانه رسانه'}
@@ -2483,7 +2613,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => updateSelectedWidget({ bgColor: 'transparent' })}
-                            className="text-[10px] text-blue-600 hover:underline"
+                            className="text-[10px] text-purple-600 hover:underline"
                           >
                             شفاف
                           </button>
@@ -2548,7 +2678,7 @@ export default function App() {
                           key={al}
                           onClick={() => updateSelectedWidget({ align: al })}
                           className={`py-1.5 rounded flex justify-center ${
-                            selectedWidget.align === al ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600'
+                            selectedWidget.align === al ? 'bg-white shadow-sm text-purple-600' : 'text-slate-600'
                           }`}
                         >
                           {al === 'right' ? <AlignRight className="w-4 h-4" /> : al === 'center' ? <AlignCenter className="w-4 h-4" /> : <AlignLeft className="w-4 h-4" />}
@@ -2627,6 +2757,112 @@ export default function App() {
           </aside>
         </div>
 
+        {/* Quick Modal to Create & Apply Custom WordPress Theme directly in Editor */}
+        {showQuickThemeModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                  <Paintbrush className="w-4 h-4 text-purple-600" />
+                  ساخت قالب وردپرس سفارشی و اعمال روی صفحه
+                </h3>
+                <button onClick={() => setShowQuickThemeModal(false)} className="p-1 hover:bg-slate-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={(e) => handleCreateCustomTheme(e, true)} className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">نام قالب (Theme Name) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newThemeName}
+                    onChange={(e) => setNewThemeName(e.target.value)}
+                    placeholder="مثلاً: قالب اختصاصی فروشگاهی"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">نوع چیدمان</label>
+                    <select
+                      value={newThemeLayout}
+                      onChange={(e) => setNewThemeLayout(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-white"
+                    >
+                      <option value="boxed">جعبه‌ای کلاسیک (Boxed)</option>
+                      <option value="full">تمام‌عرض (Full Width)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">رنگ پس‌زمینه بیرونی</label>
+                    <input
+                      type="color"
+                      value={newThemeOuterBg}
+                      onChange={(e) => setNewThemeOuterBg(e.target.value)}
+                      className="w-full h-9 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">رنگ باکس اصلی صفحه</label>
+                    <input
+                      type="color"
+                      value={newThemeSurfaceBg}
+                      onChange={(e) => setNewThemeSurfaceBg(e.target.value)}
+                      className="w-full h-9 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">رنگ متن پیش‌فرض</label>
+                    <input
+                      type="color"
+                      value={newThemeTextColor}
+                      onChange={(e) => setNewThemeTextColor(e.target.value)}
+                      className="w-full h-9 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">رنگ تاکیدی و حاشیه</label>
+                    <input
+                      type="color"
+                      value={newThemeAccentColor}
+                      onChange={(e) => setNewThemeAccentColor(e.target.value)}
+                      className="w-full h-9 rounded-lg cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-center gap-1.5 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={newThemeTopBar} onChange={(e) => setNewThemeTopBar(e.target.checked)} />
+                      نوار رنگی بالای صفحه
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={newThemeOverrideBg} onChange={(e) => setNewThemeOverrideBg(e.target.checked)} />
+                      یکدست‌سازی پس‌زمینه بخش‌ها
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">کد CSS سفارشی قالب (اختیاری)</label>
+                  <textarea
+                    rows={2}
+                    dir="ltr"
+                    value={newThemeCustomCss}
+                    onChange={(e) => setNewThemeCustomCss(e.target.value)}
+                    placeholder=".nexora-page-container { border-radius: 24px; }"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm"
+                >
+                  ساخت قالب و اعمال فوری روی این صفحه
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Media Library Modal inside Editor */}
         {mediaPickerCallback && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -2649,7 +2885,7 @@ export default function App() {
                         mediaPickerCallback.fn(item.url);
                         setMediaPickerCallback(null);
                       }}
-                      className="cursor-pointer group rounded-xl overflow-hidden border border-slate-200 hover:border-blue-600"
+                      className="cursor-pointer group rounded-xl overflow-hidden border border-slate-200 hover:border-purple-600"
                     >
                       {item.type === 'video' ? (
                         <div className="w-full h-32 bg-slate-900 flex items-center justify-center relative">
@@ -2687,15 +2923,17 @@ export default function App() {
 
   return (
     <div dir={dir} style={{ fontFamily: siteSettings.defaultFont }} className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-            <Layout className="w-5 h-5" />
-          </div>
+      {/* Sidebar with Nexora Logo */}
+      <aside className="w-64 bg-[#0b0426] text-slate-300 flex flex-col shrink-0">
+        <div className="p-5 flex items-center gap-3 border-b border-white/10">
+          <img
+            src={siteSettings.logoUrl || NEXORA_LOGO_DATA_URL}
+            alt="Nexora Logo"
+            className="w-11 h-11 rounded-xl shadow-md object-cover shrink-0"
+          />
           <div className="truncate">
-            <div className="font-bold text-white text-sm truncate">{siteSettings.siteName}</div>
-            <div className="text-[11px] text-slate-400">
+            <div className="font-black text-white text-sm truncate">{siteSettings.siteName}</div>
+            <div className="text-[11px] text-purple-300/80">
               {currentUser.name} ({currentUser.role === 'admin' ? 'مدیر کل' : currentUser.role === 'editor' ? 'ویرایشگر' : currentUser.role === 'author' ? 'نویسنده' : 'پشتیبان'})
             </div>
           </div>
@@ -2705,7 +2943,7 @@ export default function App() {
           <button
             onClick={() => setActiveTab('pages')}
             className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-              activeTab === 'pages' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+              activeTab === 'pages' ? 'bg-purple-600 text-white shadow-sm' : 'hover:bg-white/10'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -2715,7 +2953,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('templates')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                activeTab === 'templates' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+                activeTab === 'templates' ? 'bg-purple-600 text-white shadow-sm' : 'hover:bg-white/10'
               }`}
             >
               <Sparkles className="w-4 h-4" />
@@ -2726,7 +2964,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('submissions')}
               className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                activeTab === 'submissions' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+                activeTab === 'submissions' ? 'bg-purple-600 text-white shadow-sm' : 'hover:bg-white/10'
               }`}
             >
               <span className="flex items-center gap-3">
@@ -2744,7 +2982,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('media')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                activeTab === 'media' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+                activeTab === 'media' ? 'bg-purple-600 text-white shadow-sm' : 'hover:bg-white/10'
               }`}
             >
               <FolderOpen className="w-4 h-4" />
@@ -2755,29 +2993,29 @@ export default function App() {
             <button
               onClick={() => setActiveTab('admin')}
               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
-                activeTab === 'admin' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+                activeTab === 'admin' ? 'bg-purple-600 text-white shadow-sm' : 'hover:bg-white/10'
               }`}
             >
               <Shield className="w-4 h-4" />
-              {lang === 'fa' ? 'مدیریت و سطوح دسترسی' : 'Admin & Permissions'}
+              {lang === 'fa' ? 'مدیریت، قالب‌ها و دسترسی' : 'Admin & Themes'}
             </button>
           )}
         </nav>
 
-        <div className="p-4 border-t border-slate-800 space-y-2">
+        <div className="p-4 border-t border-white/10 space-y-2">
           <button
             onClick={() => setLang(lang === 'fa' ? 'en' : 'fa')}
-            className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white flex items-center justify-center gap-2"
+            className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-semibold text-white flex items-center justify-center gap-2"
           >
             <Globe className="w-4 h-4" />
             {lang === 'fa' ? 'Switch to English (LTR)' : 'تغییر زبان به فارسی (RTL)'}
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem('pb_current_user_v2');
+              localStorage.removeItem('nexora_current_user_v1');
               setCurrentUser(null);
             }}
-            className="w-full py-2 px-3 rounded-xl text-xs font-medium text-red-400 hover:bg-slate-800 flex items-center justify-center gap-2"
+            className="w-full py-2 px-3 rounded-xl text-xs font-medium text-rose-400 hover:bg-white/10 flex items-center justify-center gap-2"
           >
             <LogOut className="w-4 h-4" />
             {lang === 'fa' ? 'خروج از حساب' : 'Logout'}
@@ -2792,7 +3030,7 @@ export default function App() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-black text-slate-900">
-                  {lang === 'fa' ? 'مدیریت صفحات وب' : 'Manage Web Pages'}
+                  {lang === 'fa' ? 'مدیریت صفحات در نکسورا' : 'Nexora Web Pages'}
                 </h1>
                 <p className="text-sm text-slate-500 mt-1">
                   {lang === 'fa'
@@ -2803,7 +3041,7 @@ export default function App() {
               {perms.createPages && (
                 <button
                   onClick={() => createPageFromTemplate(TEMPLATES[0])}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 shadow-sm self-start"
+                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm flex items-center gap-2 shadow-sm self-start"
                 >
                   <Plus className="w-4 h-4" />
                   {lang === 'fa' ? 'ساخت صفحه جدید' : 'Create New Page'}
@@ -2820,7 +3058,7 @@ export default function App() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={lang === 'fa' ? 'جستجو بر اساس عنوان یا آدرس صفحه...' : 'Search pages...'}
-                  className="w-full pr-10 pl-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  className="w-full pr-10 pl-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-600"
                 />
               </div>
               <select
@@ -2849,102 +3087,105 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredPages.map((page) => (
-                      <tr key={page.id} className="hover:bg-slate-50/70 transition">
-                        <td className="p-4">
-                          <div className="font-bold text-slate-900">{page.title}</div>
-                          <div className="text-xs text-slate-400 mt-0.5">
-                            قالب: {WP_PAGE_THEMES.find((t) => t.id === (page.pageTheme || 'default'))?.name.split('(')[0]}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          {page.slug && page.slug.trim() ? (
-                            <div className="flex items-center gap-2">
-                              <code dir="ltr" className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700">
-                                ?page={page.slug}
-                              </code>
-                              <button
-                                onClick={() => copyShareLink(page)}
-                                className="px-2.5 py-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg flex items-center gap-1"
-                                title="کپی لینک کامل برای ارسال به دیگران"
-                              >
-                                <Share2 className="w-3.5 h-3.5" />
-                                کپی لینک
-                              </button>
+                    {filteredPages.map((page) => {
+                      const themeName = allAvailableThemes.find((t) => t.id === (page.pageTheme || 'default'))?.name || 'استاندارد';
+                      return (
+                        <tr key={page.id} className="hover:bg-slate-50/70 transition">
+                          <td className="p-4">
+                            <div className="font-bold text-slate-900">{page.title}</div>
+                            <div className="text-xs text-purple-600 mt-0.5 font-medium">
+                              قالب: {themeName.split('(')[0]}
                             </div>
-                          ) : (
-                            <button
-                              onClick={() => openEditor(page.id, true)}
-                              className="text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg flex items-center gap-1"
+                          </td>
+                          <td className="p-4">
+                            {page.slug && page.slug.trim() ? (
+                              <div className="flex items-center gap-2">
+                                <code dir="ltr" className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                  ?page={page.slug}
+                                </code>
+                                <button
+                                  onClick={() => copyShareLink(page)}
+                                  className="px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg flex items-center gap-1"
+                                  title="کپی لینک کامل برای ارسال به دیگران"
+                                >
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  کپی لینک
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => openEditor(page.id, true)}
+                                className="text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg flex items-center gap-1"
+                              >
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                تنظیم آدرس Slug (الزامی)
+                              </button>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                page.status === 'published'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : page.status === 'archived'
+                                  ? 'bg-slate-200 text-slate-700'
+                                  : 'bg-amber-100 text-amber-700'
+                              }`}
                             >
-                              <AlertTriangle className="w-3.5 h-3.5" />
-                              تنظیم آدرس Slug (الزامی)
-                            </button>
-                          )}
-                        </td>
-                        <td className="p-4 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              page.status === 'published'
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : page.status === 'archived'
-                                ? 'bg-slate-200 text-slate-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}
-                          >
-                            {page.status === 'published' ? 'منتشرشده' : page.status === 'archived' ? 'آرشیو' : 'پیش‌نویس'}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center font-semibold text-slate-700">{page.views || 0}</td>
-                        <td className="p-4">
-                          <div className="flex items-center justify-end gap-1.5">
-                            {perms.editPages && (
+                              {page.status === 'published' ? 'منتشرشده' : page.status === 'archived' ? 'آرشیو' : 'پیش‌نویس'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center font-semibold text-slate-700">{page.views || 0}</td>
+                          <td className="p-4">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {perms.editPages && (
+                                <button
+                                  onClick={() => openEditor(page.id)}
+                                  className="px-3 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg text-xs font-bold flex items-center gap-1"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  ویرایش بصری
+                                </button>
+                              )}
+                              {page.slug && page.slug.trim() && (
+                                <button
+                                  onClick={() => setPublicSlug(page.slug)}
+                                  className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                                  title="مشاهده صفحه"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </button>
+                              )}
+                              {perms.createPages && (
+                                <button
+                                  onClick={() => duplicatePage(page)}
+                                  className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
+                                  title="کپی صفحه"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
-                                onClick={() => openEditor(page.id)}
-                                className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold flex items-center gap-1"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                ویرایش بصری
-                              </button>
-                            )}
-                            {page.slug && page.slug.trim() && (
-                              <button
-                                onClick={() => setPublicSlug(page.slug)}
+                                onClick={() => exportPageJson(page)}
                                 className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
-                                title="مشاهده صفحه"
+                                title="خروجی JSON"
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                <Download className="w-4 h-4" />
                               </button>
-                            )}
-                            {perms.createPages && (
-                              <button
-                                onClick={() => duplicatePage(page)}
-                                className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
-                                title="کپی صفحه"
-                              >
-                                <Copy className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => exportPageJson(page)}
-                              className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg"
-                              title="خروجی JSON"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                            {perms.deletePages && (
-                              <button
-                                onClick={() => deletePage(page.id)}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
-                                title="حذف صفحه"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {perms.deletePages && (
+                                <button
+                                  onClick={() => deletePage(page.id)}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                                  title="حذف صفحه"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -2956,7 +3197,7 @@ export default function App() {
           <div className="max-w-6xl mx-auto space-y-6">
             <div>
               <h1 className="text-2xl font-black text-slate-900">
-                {lang === 'fa' ? 'قالب‌های آماده حرفه‌ای' : 'Ready-to-Use Templates'}
+                {lang === 'fa' ? 'قالب‌های آماده حرفه‌ای نکسورا' : 'Ready-to-Use Templates'}
               </h1>
               <p className="text-sm text-slate-500 mt-1">
                 یک قالب را انتخاب کنید تا بلافاصله در ویرایشگر بصری باز شود و بتوانید تمام بخش‌های آن را تغییر دهید.
@@ -2969,7 +3210,7 @@ export default function App() {
                   className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-md transition"
                 >
                   <div>
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                    <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full">
                       {tpl.category}
                     </span>
                     <h3 className="text-lg font-bold text-slate-900 mt-3">{tpl.name[lang]}</h3>
@@ -2977,7 +3218,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => createPageFromTemplate(tpl)}
-                    className="mt-6 w-full py-2.5 bg-slate-900 hover:bg-blue-600 text-white font-semibold rounded-xl text-sm transition"
+                    className="mt-6 w-full py-2.5 bg-slate-900 hover:bg-purple-600 text-white font-semibold rounded-xl text-sm transition"
                   >
                     استفاده از این قالب
                   </button>
@@ -3003,7 +3244,7 @@ export default function App() {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'form-submissions.json';
+                    a.download = 'nexora-submissions.json';
                     a.click();
                   }}
                   className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 self-start"
@@ -3028,7 +3269,7 @@ export default function App() {
                   <div key={sub.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
                     <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                       <div>
-                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full">
+                        <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full">
                           صفحه: {sub.pageTitle}
                         </span>
                         <h3 className="font-bold text-slate-900 mt-1.5 text-sm">{sub.formTitle}</h3>
@@ -3069,7 +3310,7 @@ export default function App() {
                   تصاویر و فیلم‌های خود را آپلود کنید تا در طراحی صفحات از آن‌ها استفاده نمایید.
                 </p>
               </div>
-              <label className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm cursor-pointer inline-flex items-center gap-2 self-start shadow-sm">
+              <label className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm cursor-pointer inline-flex items-center gap-2 self-start shadow-sm">
                 <Plus className="w-4 h-4" />
                 آپلود تصویر یا ویدئو
                 <input
@@ -3181,7 +3422,7 @@ export default function App() {
                   {item.type === 'video' ? (
                     <div className="w-full h-44 bg-slate-950 relative">
                       <video src={item.url} controls className="w-full h-full object-contain" />
-                      <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      <span className="absolute top-2 right-2 bg-purple-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                         ویدئو
                       </span>
                     </div>
@@ -3209,19 +3450,170 @@ export default function App() {
         {activeTab === 'admin' && (perms.manageSettings || perms.manageUsers) && (
           <div className="max-w-6xl mx-auto space-y-8">
             <div>
-              <h1 className="text-2xl font-black text-slate-900">پنل مدیریت مدیران، سطوح دسترسی و تنظیمات</h1>
+              <h1 className="text-2xl font-black text-slate-900">پنل مدیریت نکسورا، قالب‌های وردپرس و سطوح دسترسی</h1>
               <p className="text-sm text-slate-500 mt-1">
-                مدیران جدید تعریف کنید، مجوزهای دقیق هر کاربر را به صورت تکی تنظیم کنید و پیکربندی وب‌سایت را تغییر دهید.
+                قالب‌های وردپرسی دستی بسازید، مدیران جدید با مجوزهای دقیق تعریف کنید و تنظیمات کلی پلتفرم را تغییر دهید.
               </p>
             </div>
+
+            {/* Custom WordPress Theme Builder Section */}
+            {perms.manageSettings && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <Paintbrush className="w-5 h-5 text-purple-600" />
+                    <div>
+                      <h2 className="font-bold text-lg text-slate-900">ساخت و مدیریت دستی قالب‌های وردپرس (Custom Themes)</h2>
+                      <p className="text-xs text-slate-500">هر تعداد تم با رنگ‌بندی، چیدمان و CSS اختصاصی بسازید تا در تمام صفحات قابل انتخاب باشد.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <form onSubmit={(e) => handleCreateCustomTheme(e, false)} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <div className="text-xs font-bold text-purple-700">افزودن قالب وردپرس جدید</div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <input
+                        type="text"
+                        required
+                        value={newThemeName}
+                        onChange={(e) => setNewThemeName(e.target.value)}
+                        placeholder="نام قالب (مثلاً: قالب شرکتی آبی)"
+                        className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      />
+                      <input
+                        type="text"
+                        value={newThemeDesc}
+                        onChange={(e) => setNewThemeDesc(e.target.value)}
+                        placeholder="توضیح کوتاه قالب"
+                        className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      />
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">چیدمان کانتینر</label>
+                        <select
+                          value={newThemeLayout}
+                          onChange={(e) => setNewThemeLayout(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                        >
+                          <option value="boxed">جعبه‌ای کلاسیک (Boxed)</option>
+                          <option value="full">تمام‌عرض (Full Width)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">رنگ پس‌زمینه بیرونی</label>
+                        <input
+                          type="color"
+                          value={newThemeOuterBg}
+                          onChange={(e) => setNewThemeOuterBg(e.target.value)}
+                          className="w-full h-8 rounded cursor-pointer border border-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">رنگ باکس اصلی صفحه</label>
+                        <input
+                          type="color"
+                          value={newThemeSurfaceBg}
+                          onChange={(e) => setNewThemeSurfaceBg(e.target.value)}
+                          className="w-full h-8 rounded cursor-pointer border border-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-600 mb-1">رنگ متن و حاشیه تاکیدی</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={newThemeTextColor}
+                            onChange={(e) => setNewThemeTextColor(e.target.value)}
+                            className="w-1/2 h-8 rounded cursor-pointer border border-slate-200"
+                            title="رنگ متن"
+                          />
+                          <input
+                            type="color"
+                            value={newThemeAccentColor}
+                            onChange={(e) => setNewThemeAccentColor(e.target.value)}
+                            className="w-1/2 h-8 rounded cursor-pointer border border-slate-200"
+                            title="رنگ تاکیدی"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 text-xs text-slate-700 pt-1">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={newThemeTopBar} onChange={(e) => setNewThemeTopBar(e.target.checked)} />
+                        نوار رنگی بالای صفحه
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={newThemeOverrideBg} onChange={(e) => setNewThemeOverrideBg(e.target.checked)} />
+                        اعمال رنگ قالب روی تمام بخش‌ها
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" checked={newThemeIsDark} onChange={(e) => setNewThemeIsDark(e.target.checked)} />
+                        تم تیره (Dark Mode)
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">کد CSS سفارشی تم (اختیاری)</label>
+                      <textarea
+                        rows={2}
+                        dir="ltr"
+                        value={newThemeCustomCss}
+                        onChange={(e) => setNewThemeCustomCss(e.target.value)}
+                        placeholder=".nexora-page-container { box-shadow: 0 20px 50px rgba(0,0,0,0.12); }"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-mono bg-white"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-xs transition"
+                    >
+                      افزودن قالب به لیست قالب‌های وردپرس
+                    </button>
+                  </form>
+
+                  {/* List of Custom Created Themes */}
+                  <div className="space-y-2.5">
+                    <div className="text-xs font-bold text-slate-600">قالب‌های دستی ایجادشده ({customThemes.length}):</div>
+                    {customThemes.map((th) => (
+                      <div key={th.id} className="p-3.5 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            style={{ backgroundColor: th.outerBg, borderColor: th.accentColor }}
+                            className="w-10 h-10 rounded-xl border-2 flex items-center justify-center shrink-0"
+                          >
+                            <div style={{ backgroundColor: th.surfaceBg }} className="w-5 h-5 rounded shadow-xs" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-sm text-slate-900">{th.name}</div>
+                            <div className="text-xs text-slate-500">{th.desc}</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCustomThemes((prev) => prev.filter((item) => item.id !== th.id));
+                            showToast('قالب حذف شد');
+                          }}
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                          title="حذف قالب"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Website General Settings Card */}
               {perms.manageSettings && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4 self-start">
                   <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                    <Sliders className="w-5 h-5 text-blue-600" />
-                    <h2 className="font-bold text-lg text-slate-900">تنظیمات عمومی وب‌سایت</h2>
+                    <Sliders className="w-5 h-5 text-purple-600" />
+                    <h2 className="font-bold text-lg text-slate-900">تنظیمات عمومی پلتفرم نکسورا</h2>
                   </div>
 
                   <div>
@@ -3250,15 +3642,27 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">آدرس آیکون مرورگر (Favicon URL)</label>
-                    <input
-                      type="text"
-                      dir="ltr"
-                      value={siteSettings.faviconUrl}
-                      onChange={(e) => setSiteSettings((s) => ({ ...s, faviconUrl: e.target.value }))}
-                      placeholder="https://example.com/favicon.png"
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
-                    />
+                    <label className="block text-xs font-bold text-slate-700 mb-1">لوگو و آیکون مرورگر (Favicon)</label>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={siteSettings.faviconUrl || NEXORA_LOGO_DATA_URL}
+                        alt="Favicon Preview"
+                        className="w-10 h-10 rounded-xl border border-slate-200 object-cover shrink-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSiteSettings((s) => ({
+                            ...s,
+                            faviconUrl: NEXORA_LOGO_DATA_URL,
+                            logoUrl: NEXORA_LOGO_DATA_URL
+                          }))
+                        }
+                        className="px-3 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-xl text-xs font-bold"
+                      >
+                        بازنشانی به لوگوی پیش‌فرض نکسورا
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -3286,7 +3690,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => showToast('تنظیمات وب‌سایت با موفقیت ذخیره شد')}
-                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition"
+                    className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-sm transition"
                   >
                     ذخیره تنظیمات وب‌سایت
                   </button>
@@ -3297,11 +3701,10 @@ export default function App() {
               {perms.manageUsers && (
                 <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
                   <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
-                    <Users className="w-5 h-5 text-blue-600" />
+                    <Users className="w-5 h-5 text-purple-600" />
                     <h2 className="font-bold text-lg text-slate-900">مدیریت مدیران و سطوح دسترسی پیشرفته</h2>
                   </div>
 
-                  {/* Add New User Form with Granular Checkboxes */}
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
@@ -3330,7 +3733,7 @@ export default function App() {
                     className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3"
                   >
                     <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                      <UserPlus className="w-4 h-4 text-blue-600" />
+                      <UserPlus className="w-4 h-4 text-purple-600" />
                       تعریف مدیر یا کاربر جدید
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
@@ -3376,7 +3779,6 @@ export default function App() {
                       </select>
                     </div>
 
-                    {/* Granular Checkboxes */}
                     <div className="pt-2 border-t border-slate-200">
                       <div className="text-[11px] font-bold text-slate-600 mb-2">تنظیم دقیق مجوزهای این کاربر:</div>
                       <div className="grid grid-cols-2 gap-2">
@@ -3388,7 +3790,7 @@ export default function App() {
                               onChange={(e) =>
                                 setNewUserPerms((prev) => ({ ...prev, [perm.key]: e.target.checked }))
                               }
-                              className="rounded text-blue-600 focus:ring-blue-500"
+                              className="rounded text-purple-600 focus:ring-purple-500"
                             />
                             <span>{perm.label}</span>
                           </label>
@@ -3398,7 +3800,7 @@ export default function App() {
 
                     <button
                       type="submit"
-                      className="w-full py-2.5 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-lg text-xs transition"
+                      className="w-full py-2.5 bg-slate-900 hover:bg-purple-600 text-white font-bold rounded-lg text-xs transition"
                     >
                       ثبت کاربر و ذخیره سطوح دسترسی
                     </button>
@@ -3417,7 +3819,7 @@ export default function App() {
                             <div>
                               <div className="font-bold text-sm text-slate-900 flex items-center gap-2">
                                 <span>{u.name}</span>
-                                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold">
+                                <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full font-bold">
                                   {activeCount} از ۸ مجوز فعال
                                 </span>
                               </div>
@@ -3433,7 +3835,7 @@ export default function App() {
                                   onClick={() => setExpandedUserPermId(isExpanded ? null : u.id)}
                                   className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1"
                                 >
-                                  <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
+                                  <CheckSquare className="w-3.5 h-3.5 text-purple-600" />
                                   مجوزها
                                 </button>
                               )}
@@ -3451,7 +3853,6 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Expandable Granular Permission Toggles */}
                           {isExpanded && u.username !== 'admin' && (
                             <div className="pt-2.5 border-t border-slate-100 grid grid-cols-2 gap-2 bg-slate-50/80 p-3 rounded-lg">
                               {PERMISSION_LABELS.map((perm) => (
@@ -3475,7 +3876,7 @@ export default function App() {
                                         )
                                       );
                                     }}
-                                    className="rounded text-blue-600 focus:ring-blue-500"
+                                    className="rounded text-purple-600 focus:ring-purple-500"
                                   />
                                   <span>{perm.label}</span>
                                 </label>
