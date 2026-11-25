@@ -5,11 +5,12 @@ import {
   Monitor, Tablet, Smartphone, FolderOpen, Download,
   ExternalLink, LogOut, LogIn, Sparkles, Layers, Code, List, Table as TableIcon,
   Minus, FileText, Share2, KeyRound, ArrowRight, X, CheckCircle2,
-  AlignLeft, AlignCenter, AlignRight, Mic, Volume2, Inbox, StopCircle, Upload
+  AlignLeft, AlignCenter, AlignRight, Mic, Volume2, Inbox, StopCircle, Upload,
+  Users, Shield, Sliders, Film, UserPlus
 } from 'lucide-react';
 
 // --- Unicode-safe Base64 Encode/Decode for Universal Shareable Links ---
-const encodePageData = (pageObj) => {
+const encodePageData = (pageObj, siteSettings) => {
   try {
     const minimal = {
       id: pageObj.id,
@@ -21,6 +22,8 @@ const encodePageData = (pageObj) => {
       metaTitle: pageObj.metaTitle || pageObj.title,
       metaDescription: pageObj.metaDescription || '',
       direction: pageObj.direction || 'rtl',
+      defaultFont: siteSettings?.defaultFont || "'Vazirmatn', sans-serif",
+      footerText: siteSettings?.footerText || '',
       sections: pageObj.sections
     };
     const json = JSON.stringify(minimal);
@@ -49,7 +52,17 @@ const decodePageData = (encodedStr) => {
   }
 };
 
-// --- Initial Templates (9 Professional Templates) ---
+const FONT_OPTIONS = [
+  { label: 'فونت پیش‌فرض سایت', value: '' },
+  { label: 'وزیرمتن (Vazirmatn)', value: "'Vazirmatn', sans-serif" },
+  { label: 'لاله‌زار - تیتر ضخیم (Lalezar)', value: "'Lalezar', cursive, sans-serif" },
+  { label: 'تاهوما (Tahoma)', value: "Tahoma, Geneva, sans-serif" },
+  { label: 'مدرن (System Sans)', value: "system-ui, -apple-system, sans-serif" },
+  { label: 'کلاسیک (Serif)', value: "Georgia, 'Times New Roman', serif" },
+  { label: 'کدنویسی (Monospace)', value: "'Courier New', monospace" }
+];
+
+// --- Initial Templates ---
 const TEMPLATES = [
   {
     id: 'tpl-blank',
@@ -70,6 +83,7 @@ const TEMPLATES = [
             align: 'center',
             color: '#0f172a',
             fontSize: 36,
+            fontFamily: '',
             bgColor: 'transparent',
             padding: 12,
             borderRadius: 0
@@ -77,10 +91,11 @@ const TEMPLATES = [
           {
             id: 'w-2',
             type: 'text',
-            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید (متن، تصویر، ویدئو، صدا و ویس، فرم و...) اضافه کنید.',
+            content: 'این متن نمونه است. از پنل سمت راست می‌توانید المان‌های جدید اضافه کنید یا رنگ و فونت متن‌ها را تغییر دهید.',
             align: 'center',
             color: '#475569',
             fontSize: 16,
+            fontFamily: '',
             bgColor: 'transparent',
             padding: 8,
             borderRadius: 0
@@ -352,27 +367,13 @@ const TEMPLATES = [
           {
             id: 'wc-2',
             type: 'text',
-            content: 'ما از سال ۱۳۹۵ با هدف ساده‌سازی فرآیندهای دیجیتال برای کسب‌وکارهای ایرانی فعالیت خود را آغاز کردیم و امروز بیش از ۵۰۰ سازمان از راهکارهای ما استفاده می‌کنند.',
+            content: 'ما از سال ۱۳۹۵ با هدف ساده‌سازی فرآیندهای دیجیتال برای کسب‌وکارهای ایرانی فعالیت خود را آغاز کردیم.',
             align: 'center',
             color: '#475569',
             fontSize: 17,
             bgColor: 'transparent',
             padding: 12,
             borderRadius: 0
-          },
-          {
-            id: 'wc-3',
-            type: 'table',
-            headers: ['شاخص عملکرد', 'آمار ثبت‌شده'],
-            rows: [
-              ['پروژه‌های موفق', '+۵۲۰ پروژه'],
-              ['رضایت مشتریان', '۹۸.۴٪'],
-              ['اعضای تیم متخصص', '۴۵ نفر']
-            ],
-            bgColor: '#f8fafc',
-            color: '#0f172a',
-            padding: 16,
-            borderRadius: 12
           }
         ]
       }
@@ -411,19 +412,6 @@ const TEMPLATES = [
             bgColor: 'transparent',
             padding: 8,
             borderRadius: 0
-          },
-          {
-            id: 'wper-3',
-            type: 'list',
-            items: [
-              'بیش از ۷ سال سابقه طراحی محصولات دیجیتال',
-              'همکاری با استارتاپ‌های برتر حوزه فین‌تک و آموزش',
-              'مدرس دوره‌های تخصصی طراحی سیستم‌های دیزاین'
-            ],
-            bgColor: '#ffffff',
-            color: '#27272a',
-            padding: 24,
-            borderRadius: 16
           }
         ]
       }
@@ -520,7 +508,7 @@ const TEMPLATES = [
           {
             id: 'wart-1',
             type: 'heading',
-            content: 'راهنمای جامع طراحی صفحات فرود پربازده در سال ۱۴۰۴',
+            content: 'راهنمای جامع طراحی صفحات فرود پربازده',
             align: 'right',
             color: '#0f172a',
             fontSize: 34,
@@ -529,18 +517,9 @@ const TEMPLATES = [
             borderRadius: 0
           },
           {
-            id: 'wart-2',
-            type: 'image',
-            url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1000&q=80',
-            caption: 'تحلیل رفتار کاربران در صفحات فرود',
-            borderRadius: 14,
-            padding: 8,
-            bgColor: 'transparent'
-          },
-          {
             id: 'wart-3',
             type: 'text',
-            content: 'یک صفحه فرود موفق باید در کمتر از ۳ ثانیه پیام اصلی شما را به بازدیدکننده منتقل کند. استفاده از تیترهای شفاف، دعوت به اقدام (CTA) مشخص و حذف حواس‌پرتی‌ها کلید اصلی افزایش نرخ تبدیل است.',
+            content: 'یک صفحه فرود موفق باید در کمتر از ۳ ثانیه پیام اصلی شما را به بازدیدکننده منتقل کند.',
             align: 'right',
             color: '#334155',
             fontSize: 17,
@@ -574,29 +553,6 @@ const TEMPLATES = [
             bgColor: 'transparent',
             padding: 12,
             borderRadius: 0
-          },
-          {
-            id: 'wth-2',
-            type: 'text',
-            content: 'کارشناسان ما اطلاعات شما را بررسی کرده و حداکثر تا ۲ ساعت آینده با شما تماس خواهند گرفت.',
-            align: 'center',
-            color: '#475569',
-            fontSize: 17,
-            bgColor: 'transparent',
-            padding: 12,
-            borderRadius: 0
-          },
-          {
-            id: 'wth-3',
-            type: 'button',
-            label: 'بازگشت به صفحه اصلی',
-            url: '#',
-            align: 'center',
-            color: '#ffffff',
-            bgColor: '#0f172a',
-            fontSize: 15,
-            padding: 14,
-            borderRadius: 10
           }
         ]
       }
@@ -621,19 +577,38 @@ const INITIAL_MEDIA = [
   },
   {
     id: 'm-3',
-    name: 'workspace-modern.jpg',
-    type: 'image',
-    url: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=1000&q=80',
-    date: '۱۴۰۴/۰۱/۱۵'
+    name: 'sample-promo-video.mp4',
+    type: 'video',
+    url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    date: '۱۴۰۴/۰۱/۱۸'
   }
 ];
+
+const INITIAL_USERS = [
+  {
+    id: 'u-1',
+    name: 'مدیر اصلی سیستم',
+    username: 'admin',
+    password: 'admin123',
+    role: 'admin', // 'admin' | 'editor' | 'author'
+    createdAt: '۱۴۰۴/۰۱/۰۱'
+  }
+];
+
+const DEFAULT_SITE_SETTINGS = {
+  siteName: 'پلتفرم صفحه‌ساز حرفه‌ای',
+  defaultFont: "'Vazirmatn', sans-serif",
+  faviconUrl: '',
+  analyticsCode: '',
+  footerText: 'تمامی حقوق برای این وب‌سایت محفوظ است.'
+};
 
 const WIDGET_TYPES = [
   { type: 'heading', label: { fa: 'عنوان اصلی', en: 'Heading' }, icon: Type },
   { type: 'subheading', label: { fa: 'زیرعنوان', en: 'Subheading' }, icon: Type },
   { type: 'text', label: { fa: 'متن پیشرفته', en: 'Rich Text' }, icon: FileText },
   { type: 'image', label: { fa: 'تصویر', en: 'Image' }, icon: ImageIcon },
-  { type: 'video', label: { fa: 'ویدئو', en: 'Video' }, icon: Video },
+  { type: 'video', label: { fa: 'ویدئو و فیلم', en: 'Video' }, icon: Video },
   { type: 'audio', label: { fa: 'صدا و ویس', en: 'Audio / Voice' }, icon: Mic },
   { type: 'button', label: { fa: 'دکمه و لینک', en: 'Button' }, icon: Square },
   { type: 'card', label: { fa: 'کارت محتوایی', en: 'Content Card' }, icon: Layout },
@@ -658,10 +633,12 @@ const slugify = (text) => {
     .replace(/--+/g, '-') || `page-${generateId()}`;
 };
 
-// --- Standalone Widget Renderer (Used in Canvas, Preview, and Public View) ---
-function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit }) {
+// --- Standalone Widget Renderer ---
+function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont }) {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formValues, setFormValues] = useState({});
+
+  const appliedFont = widget.fontFamily || defaultFont || "'Vazirmatn', sans-serif";
 
   const wrapperStyle = {
     backgroundColor: widget.bgColor || 'transparent',
@@ -669,7 +646,8 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
     borderRadius: `${widget.borderRadius ?? 0}px`,
     width: widget.width || '100%',
     minHeight: widget.height ? `${widget.height}px` : 'auto',
-    textAlign: widget.align || (lang === 'fa' ? 'right' : 'left')
+    textAlign: widget.align || (lang === 'fa' ? 'right' : 'left'),
+    fontFamily: appliedFont
   };
 
   const renderContent = () => {
@@ -680,6 +658,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             style={{
               color: widget.color || '#0f172a',
               fontSize: `${widget.fontSize || 32}px`,
+              fontFamily: appliedFont,
               fontWeight: 800,
               lineHeight: 1.3
             }}
@@ -693,6 +672,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             style={{
               color: widget.color || '#334155',
               fontSize: `${widget.fontSize || 20}px`,
+              fontFamily: appliedFont,
               fontWeight: 600,
               lineHeight: 1.4
             }}
@@ -706,6 +686,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             style={{
               color: widget.color || '#475569',
               fontSize: `${widget.fontSize || 16}px`,
+              fontFamily: appliedFont,
               lineHeight: 1.8,
               whiteSpace: 'pre-line'
             }}
@@ -723,7 +704,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
               className="w-full h-auto object-cover max-h-[520px]"
             />
             {widget.caption && (
-              <figcaption className="mt-2 text-xs text-slate-500 text-center">
+              <figcaption style={{ color: widget.color || '#64748b' }} className="mt-2 text-xs text-center">
                 {widget.caption}
               </figcaption>
             )}
@@ -731,7 +712,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         );
       case 'video':
         return (
-          <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-900">
+          <div className="w-full aspect-video rounded-xl overflow-hidden bg-slate-900 shadow-sm">
             {widget.url ? (
               widget.url.includes('youtube.com') || widget.url.includes('youtu.be') || widget.url.includes('aparat.com') ? (
                 <iframe
@@ -741,11 +722,12 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                   title="video-embed"
                 />
               ) : (
-                <video src={widget.url} controls className="w-full h-full object-cover" />
+                <video src={widget.url} controls className="w-full h-full object-contain bg-black" />
               )
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                {lang === 'fa' ? 'آدرس ویدئو یا کد Embed را در تنظیمات وارد کنید' : 'Enter Video URL in settings'}
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-sm p-4 text-center">
+                <Film className="w-8 h-8 mb-2 opacity-60" />
+                {lang === 'fa' ? 'ویدئو را از کتابخانه رسانه انتخاب کنید یا آدرس فایل را وارد نمایید' : 'Select video from Media Library or enter URL'}
               </div>
             )}
           </div>
@@ -764,7 +746,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                 <Volume2 className="w-4 h-4" />
               </div>
               <div className="text-start">
-                <div className="text-sm font-bold text-slate-900">
+                <div style={{ color: widget.color || '#0f172a' }} className="text-sm font-bold">
                   {widget.title || (lang === 'fa' ? 'فایل صوتی / ویس' : 'Audio / Voice Message')}
                 </div>
                 {widget.caption && <div className="text-xs text-slate-500">{widget.caption}</div>}
@@ -775,7 +757,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             ) : (
               <div className="text-xs text-slate-500 bg-white p-3 rounded-xl border border-dashed border-slate-300 text-center">
                 {lang === 'fa'
-                  ? 'روی این باکس کلیک کنید تا از پنل سمت چپ فایل صوتی آپلود کنید یا با میکروفون ویس ضبط نمایید'
+                  ? 'روی این باکس کلیک کنید تا فایل صوتی آپلود کنید یا با میکروفون ویس ضبط نمایید'
                   : 'Click to upload audio or record voice'}
               </div>
             )}
@@ -791,6 +773,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                 backgroundColor: widget.bgColor || '#2563eb',
                 color: widget.color || '#ffffff',
                 fontSize: `${widget.fontSize || 16}px`,
+                fontFamily: appliedFont,
                 padding: `${widget.padding || 12}px ${(widget.padding || 12) * 2}px`,
                 borderRadius: `${widget.borderRadius ?? 10}px`
               }}
@@ -806,6 +789,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             style={{
               backgroundColor: widget.bgColor || '#f8fafc',
               color: widget.color || '#0f172a',
+              fontFamily: appliedFont,
               padding: `${widget.padding || 24}px`,
               borderRadius: `${widget.borderRadius ?? 16}px`
             }}
@@ -818,8 +802,12 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                 className="w-full h-44 object-cover rounded-xl mb-4"
               />
             )}
-            <h3 className="text-lg font-bold mb-2">{widget.title || 'عنوان کارت'}</h3>
-            <p className="text-sm opacity-85 leading-relaxed">{widget.content || 'توضیحات کارت محتوایی'}</p>
+            <h3 style={{ fontSize: `${(widget.fontSize || 16) + 2}px` }} className="font-bold mb-2">
+              {widget.title || 'عنوان کارت'}
+            </h3>
+            <p style={{ fontSize: `${widget.fontSize || 14}px` }} className="opacity-85 leading-relaxed">
+              {widget.content || 'توضیحات کارت محتوایی'}
+            </p>
           </div>
         );
       case 'gallery':
@@ -847,9 +835,9 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           ['مقدار ۳', 'مقدار ۴']
         ];
         return (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <div style={{ color: widget.color || '#0f172a' }} className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-sm">
-              <thead className="bg-slate-100 text-slate-700">
+              <thead className="bg-slate-100">
                 <tr>
                   {headers.map((h, i) => (
                     <th key={i} className="p-3 font-bold border-b border-slate-200">
@@ -877,7 +865,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <ul className="space-y-2.5">
             {items.map((item, idx) => (
-              <li key={idx} className="flex items-center gap-2.5 text-sm md:text-base">
+              <li key={idx} className="flex items-center gap-2.5" style={{ fontSize: `${widget.fontSize || 16}px` }}>
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <span style={{ color: widget.color || '#1e293b' }}>{item}</span>
               </li>
@@ -890,12 +878,14 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           <div
             style={{
               backgroundColor: widget.bgColor || '#f8fafc',
+              color: widget.color || '#0f172a',
+              fontFamily: appliedFont,
               padding: `${widget.padding || 28}px`,
               borderRadius: `${widget.borderRadius ?? 16}px`
             }}
             className="max-w-xl mx-auto border border-slate-200 shadow-sm"
           >
-            <h3 className="text-xl font-bold mb-4 text-slate-900">
+            <h3 className="text-xl font-bold mb-4">
               {widget.title || (lang === 'fa' ? 'فرم ارتباط با ما' : 'Contact Form')}
             </h3>
             {formSubmitted ? (
@@ -918,14 +908,14 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
               >
                 {fields.map((f, i) => (
                   <div key={i}>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">{f}</label>
+                    <label className="block text-xs font-semibold opacity-80 mb-1">{f}</label>
                     <input
                       type="text"
                       required
                       value={formValues[f] || ''}
                       onChange={(e) => setFormValues((prev) => ({ ...prev, [f]: e.target.value }))}
                       placeholder={f}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 ))}
@@ -979,7 +969,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
 }
 
 // --- Public Standalone Page Viewer ---
-function PublicPageView({ page, onIncrementView, onSaveSubmission, onBackToAdmin }) {
+function PublicPageView({ page, siteSettings, onIncrementView, onSaveSubmission, onBackToAdmin }) {
   const [passwordInput, setPasswordInput] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState('');
@@ -1058,49 +1048,60 @@ function PublicPageView({ page, onIncrementView, onSaveSubmission, onBackToAdmin
     );
   }
 
+  const activeDefaultFont = page.defaultFont || siteSettings?.defaultFont || "'Vazirmatn', sans-serif";
+  const footerText = page.footerText !== undefined ? page.footerText : siteSettings?.footerText;
+
   return (
-    <div dir={page.direction || 'rtl'} className="min-h-screen bg-white">
-      {page.sections.map((sec) => (
-        <section
-          key={sec.id}
-          style={{
-            backgroundColor: sec.bgColor || '#ffffff',
-            paddingTop: `${sec.paddingY ?? 48}px`,
-            paddingBottom: `${sec.paddingY ?? 48}px`
-          }}
-          className="w-full px-4 md:px-8"
-        >
-          <div
-            className={`max-w-6xl mx-auto grid gap-6 ${
-              sec.columns === 3
-                ? 'grid-cols-1 md:grid-cols-3'
-                : sec.columns === 2
-                ? 'grid-cols-1 md:grid-cols-2'
-                : 'grid-cols-1'
-            }`}
+    <div dir={page.direction || 'rtl'} style={{ fontFamily: activeDefaultFont }} className="min-h-screen bg-white flex flex-col">
+      <div className="flex-1">
+        {page.sections.map((sec) => (
+          <section
+            key={sec.id}
+            style={{
+              backgroundColor: sec.bgColor || '#ffffff',
+              paddingTop: `${sec.paddingY ?? 48}px`,
+              paddingBottom: `${sec.paddingY ?? 48}px`
+            }}
+            className="w-full px-4 md:px-8"
           >
-            {sec.widgets.map((w) => (
-              <WidgetRenderer
-                key={w.id}
-                widget={w}
-                isEditing={false}
-                lang={page.direction === 'ltr' ? 'en' : 'fa'}
-                onFormSubmit={(formTitle, values) =>
-                  onSaveSubmission({
-                    id: `sub-${generateId()}`,
-                    pageId: page.id,
-                    pageTitle: page.title,
-                    pageSlug: page.slug,
-                    formTitle,
-                    values,
-                    submittedAt: new Date().toLocaleString('fa-IR')
-                  })
-                }
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+            <div
+              className={`max-w-6xl mx-auto grid gap-6 ${
+                sec.columns === 3
+                  ? 'grid-cols-1 md:grid-cols-3'
+                  : sec.columns === 2
+                  ? 'grid-cols-1 md:grid-cols-2'
+                  : 'grid-cols-1'
+              }`}
+            >
+              {sec.widgets.map((w) => (
+                <WidgetRenderer
+                  key={w.id}
+                  widget={w}
+                  isEditing={false}
+                  defaultFont={activeDefaultFont}
+                  lang={page.direction === 'ltr' ? 'en' : 'fa'}
+                  onFormSubmit={(formTitle, values) =>
+                    onSaveSubmission({
+                      id: `sub-${generateId()}`,
+                      pageId: page.id,
+                      pageTitle: page.title,
+                      pageSlug: page.slug,
+                      formTitle,
+                      values,
+                      submittedAt: new Date().toLocaleString('fa-IR')
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      {footerText && (
+        <footer className="py-5 px-4 text-center text-xs text-slate-500 border-t border-slate-100 bg-slate-50/60">
+          {footerText}
+        </footer>
+      )}
     </div>
   );
 }
@@ -1110,13 +1111,46 @@ export default function App() {
   const [lang, setLang] = useState('fa');
   const dir = lang === 'fa' ? 'rtl' : 'ltr';
 
-  // Auth State (Empty by default as requested)
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('pb_auth') === 'true';
+  // Inject Persian Web Fonts dynamically
+  useEffect(() => {
+    const styleId = 'pb-custom-fonts';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.innerHTML = `
+        @import url('https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@300;400;600;800&display=swap');
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  // Users & Role-Based Access State
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem('pb_users_v1');
+    return saved ? JSON.parse(saved) : INITIAL_USERS;
   });
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('pb_current_user_v1');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Website Global Settings State
+  const [siteSettings, setSiteSettings] = useState(() => {
+    const saved = localStorage.getItem('pb_site_settings_v1');
+    return saved ? JSON.parse(saved) : DEFAULT_SITE_SETTINGS;
+  });
+
+  // Login Form State (Empty by default)
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
+
+  // New User Form State (Admin Panel)
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserUsername, setNewUserUsername] = useState('');
+  const [newUserPass, setNewUserPass] = useState('');
+  const [newUserRole, setNewUserRole] = useState('editor');
 
   // Pages, Submissions & Media State
   const [pages, setPages] = useState(() => {
@@ -1151,6 +1185,27 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_MEDIA;
   });
 
+  const [mediaFilter, setMediaFilter] = useState('all'); // 'all' | 'image' | 'video'
+  const [mediaUrlInput, setMediaUrlInput] = useState('');
+  const [mediaUrlType, setMediaUrlType] = useState('video');
+
+  useEffect(() => {
+    localStorage.setItem('pb_users_v1', JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem('pb_site_settings_v1', JSON.stringify(siteSettings));
+    if (siteSettings.faviconUrl) {
+      let link = document.querySelector("link[rel~='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+      }
+      link.href = siteSettings.faviconUrl;
+    }
+  }, [siteSettings]);
+
   useEffect(() => {
     localStorage.setItem('pb_pages_v1', JSON.stringify(pages));
   }, [pages]);
@@ -1160,10 +1215,16 @@ export default function App() {
   }, [submissions]);
 
   useEffect(() => {
-    localStorage.setItem('pb_media_v1', JSON.stringify(media));
+    try {
+      // Only persist data URLs under 1.5MB so localStorage never overflows on large video files
+      const safeMedia = media.filter((m) => !m.url.startsWith('blob:') && m.url.length < 1500000);
+      localStorage.setItem('pb_media_v1', JSON.stringify(safeMedia));
+    } catch (e) {
+      // Ignore quota exceeded for large session videos
+    }
   }, [media]);
 
-  // Routing / Active View (Supports both local slug AND self-contained encoded URL data)
+  // Routing / Active View
   const [publicSlug, setPublicSlug] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('page');
@@ -1175,7 +1236,7 @@ export default function App() {
     return dataParam ? decodePageData(dataParam) : null;
   });
 
-  const [activeTab, setActiveTab] = useState('pages'); // 'pages' | 'templates' | 'submissions' | 'media' | 'editor'
+  const [activeTab, setActiveTab] = useState('pages'); // 'pages' | 'templates' | 'submissions' | 'media' | 'admin' | 'editor'
   const [editingPageId, setEditingPageId] = useState(null);
 
   // Dashboard Filters
@@ -1190,9 +1251,9 @@ export default function App() {
   const [editorRightTab, setEditorRightTab] = useState('style');
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
-  const [mediaPickerCallback, setMediaPickerCallback] = useState(null);
+  const [mediaPickerCallback, setMediaPickerCallback] = useState(null); // { type: 'image' | 'video', fn }
 
-  // Voice Recorder State inside Editor
+  // Voice Recorder State
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -1211,6 +1272,7 @@ export default function App() {
     return (
       <PublicPageView
         page={targetPage}
+        siteSettings={siteSettings}
         onIncrementView={(id) => {
           setPages((prev) => prev.map((p) => (p.id === id ? { ...p, views: (p.views || 0) + 1 } : p)));
         }}
@@ -1227,25 +1289,28 @@ export default function App() {
   }
 
   // Login Screen (Empty inputs by default)
-  if (!isAuthenticated) {
+  if (!currentUser) {
     return (
-      <div dir="rtl" className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div dir="rtl" style={{ fontFamily: siteSettings.defaultFont }} className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
               <Layout className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900">پلتفرم صفحه‌ساز حرفه‌ای</h1>
+              <h1 className="text-xl font-black text-slate-900">{siteSettings.siteName}</h1>
               <p className="text-xs text-slate-500">ورود به پنل مدیریت و طراحی بصری</p>
             </div>
           </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (loginUser.trim() === 'admin' && loginPass === 'admin123') {
-                localStorage.setItem('pb_auth', 'true');
-                setIsAuthenticated(true);
+              const matched = users.find(
+                (u) => u.username.toLowerCase() === loginUser.trim().toLowerCase() && u.password === loginPass
+              );
+              if (matched) {
+                localStorage.setItem('pb_current_user_v1', JSON.stringify(matched));
+                setCurrentUser(matched);
                 setLoginError('');
               } else {
                 setLoginError('نام کاربری یا رمز عبور اشتباه است.');
@@ -1288,6 +1353,11 @@ export default function App() {
       </div>
     );
   }
+
+  // Permission Helpers
+  const canPublish = currentUser.role === 'admin' || currentUser.role === 'editor';
+  const canDelete = currentUser.role === 'admin' || currentUser.role === 'editor';
+  const isAdmin = currentUser.role === 'admin';
 
   // Helper Functions for Pages
   const createPageFromTemplate = (tpl) => {
@@ -1336,21 +1406,24 @@ export default function App() {
   };
 
   const deletePage = (id) => {
+    if (!canDelete) {
+      showToast('شما دسترسی حذف صفحه را ندارید.');
+      return;
+    }
     setPages((prev) => prev.filter((p) => p.id !== id));
     showToast(lang === 'fa' ? 'صفحه حذف شد' : 'Page deleted');
   };
 
-  // Builds a universally shareable URL containing the page snapshot so anyone can open it anywhere
   const getPublicUrl = (pageObj) => {
     const base = `${window.location.origin}${window.location.pathname}`;
-    const encoded = encodePageData(pageObj);
+    const encoded = encodePageData(pageObj, siteSettings);
     return encoded ? `${base}?page=${pageObj.slug}&d=${encodeURIComponent(encoded)}` : `${base}?page=${pageObj.slug}`;
   };
 
   const copyShareLink = (pageObj) => {
     const url = getPublicUrl(pageObj);
     navigator.clipboard.writeText(url);
-    showToast(lang === 'fa' ? 'لینک کامل و قابل اشتراک‌گذاری کپی شد! می‌توانید به هر کسی ارسال کنید.' : 'Shareable link copied!');
+    showToast(lang === 'fa' ? 'لینک کامل و قابل اشتراک‌گذاری کپی شد!' : 'Shareable link copied!');
   };
 
   const exportPageJson = (page) => {
@@ -1410,6 +1483,7 @@ export default function App() {
           align: 'center',
           color: '#0f172a',
           fontSize: 28,
+          fontFamily: '',
           bgColor: 'transparent',
           padding: 8,
           borderRadius: 0
@@ -1422,18 +1496,18 @@ export default function App() {
 
   const addWidgetToSection = (sectionId, type) => {
     const defaults = {
-      heading: { content: 'عنوان جدید', fontSize: 32, color: '#0f172a', align: 'right' },
-      subheading: { content: 'زیرعنوان توضیحی', fontSize: 20, color: '#475569', align: 'right' },
-      text: { content: 'متن دلخواه خود را اینجا بنویسید و از پنل کناری رنگ و اندازه آن را تغییر دهید.', fontSize: 16, color: '#334155', align: 'right' },
+      heading: { content: 'عنوان جدید', fontSize: 32, color: '#0f172a', align: 'right', fontFamily: '' },
+      subheading: { content: 'زیرعنوان توضیحی', fontSize: 20, color: '#475569', align: 'right', fontFamily: '' },
+      text: { content: 'متن دلخواه خود را اینجا بنویسید و از پنل کناری رنگ و فونت آن را تغییر دهید.', fontSize: 16, color: '#334155', align: 'right', fontFamily: '' },
       image: { url: 'https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=900&q=80', caption: 'توضیح تصویر', borderRadius: 12 },
       video: { url: '' },
       audio: { title: 'پیام صوتی / ویس', caption: 'برای پخش روی دکمه Play کلیک کنید', url: '', bgColor: '#f1f5f9', borderRadius: 16 },
-      button: { label: 'دکمه اقدام', url: '#', bgColor: '#2563eb', color: '#ffffff', fontSize: 16, padding: 12, borderRadius: 10, align: 'center' },
-      card: { title: 'عنوان کارت', content: 'توضیحات مختصر درباره این کارت محتوایی', bgColor: '#f8fafc', color: '#0f172a', padding: 24, borderRadius: 16 },
-      gallery: { images: INITIAL_MEDIA.map((m) => m.url) },
+      button: { label: 'دکمه اقدام', url: '#', bgColor: '#2563eb', color: '#ffffff', fontSize: 16, padding: 12, borderRadius: 10, align: 'center', fontFamily: '' },
+      card: { title: 'عنوان کارت', content: 'توضیحات مختصر درباره این کارت محتوایی', bgColor: '#f8fafc', color: '#0f172a', padding: 24, borderRadius: 16, fontFamily: '' },
+      gallery: { images: INITIAL_MEDIA.filter((m) => m.type === 'image').map((m) => m.url) },
       table: { headers: ['ویژگی', 'توضیحات'], rows: [['سرعت بارگذاری', 'زیر ۱ ثانیه'], ['پشتیبانی', '۲۴ ساعته']] },
-      list: { items: ['مزیت اول محصول یا خدمت', 'مزیت دوم با کیفیت تضمینی', 'مزیت سوم و پشتیبانی ویژه'], color: '#1e293b' },
-      form: { title: 'فرم ثبت درخواست', buttonText: 'ارسال فرم', fields: ['نام و نام خانوادگی', 'شماره تماس'], bgColor: '#f8fafc', padding: 24, borderRadius: 16 },
+      list: { items: ['مزیت اول محصول یا خدمت', 'مزیت دوم با کیفیت تضمینی', 'مزیت سوم و پشتیبانی ویژه'], color: '#1e293b', fontFamily: '' },
+      form: { title: 'فرم ثبت درخواست', buttonText: 'ارسال فرم', fields: ['نام و نام خانوادگی', 'شماره تماس'], bgColor: '#f8fafc', padding: 24, borderRadius: 16, fontFamily: '' },
       divider: { color: '#cbd5e1' },
       spacer: { height: 48 },
       html: { content: '<div style="padding:20px;background:#eff6ff;border-radius:12px;text-align:center;font-weight:bold;">کد HTML سفارشی شما</div>' }
@@ -1473,7 +1547,6 @@ export default function App() {
     }));
   };
 
-  // Start/Stop Microphone Voice Recording for Audio Widget
   const startVoiceRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1537,7 +1610,7 @@ export default function App() {
   // --- VISUAL EDITOR VIEW ---
   if (activeTab === 'editor' && currentPage) {
     return (
-      <div dir={dir} className="h-screen flex flex-col bg-slate-100 overflow-hidden">
+      <div dir={dir} style={{ fontFamily: siteSettings.defaultFont }} className="h-screen flex flex-col bg-slate-100 overflow-hidden">
         {/* Top Editor Toolbar */}
         <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20">
           <div className="flex items-center gap-3">
@@ -1612,28 +1685,36 @@ export default function App() {
 
           {/* Publish & Share Actions */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const publishedObj = { ...currentPage, status: 'published' };
-                updateCurrentPage(() => publishedObj, false);
-                setPublicSlug(publishedObj.slug);
-              }}
-              className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              {lang === 'fa' ? 'پیش‌نمایش' : 'Preview'}
-            </button>
-            <button
-              onClick={() => {
-                const publishedObj = { ...currentPage, status: 'published' };
-                updateCurrentPage(() => publishedObj, false);
-                copyShareLink(publishedObj);
-              }}
-              className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1.5 shadow-sm"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              {lang === 'fa' ? 'انتشار و کپی لینک' : 'Publish & Copy Link'}
-            </button>
+            {canPublish ? (
+              <>
+                <button
+                  onClick={() => {
+                    const publishedObj = { ...currentPage, status: 'published' };
+                    updateCurrentPage(() => publishedObj, false);
+                    setPublicSlug(publishedObj.slug);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1.5"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  {lang === 'fa' ? 'پیش‌نمایش' : 'Preview'}
+                </button>
+                <button
+                  onClick={() => {
+                    const publishedObj = { ...currentPage, status: 'published' };
+                    updateCurrentPage(() => publishedObj, false);
+                    copyShareLink(publishedObj);
+                  }}
+                  className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg flex items-center gap-1.5 shadow-sm"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  {lang === 'fa' ? 'انتشار و کپی لینک' : 'Publish & Copy Link'}
+                </button>
+              </>
+            ) : (
+              <span className="text-xs bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg font-medium">
+                ذخیره خودکار در حالت پیش‌نویس (نقش نویسنده)
+              </span>
+            )}
           </div>
         </header>
 
@@ -1752,7 +1833,6 @@ export default function App() {
                   >
                     {sec.widgets.map((w, wIdx) => (
                       <div key={w.id} className="relative group">
-                        {/* Widget Quick Actions */}
                         {selectedWidgetId === w.id && (
                           <div className="absolute -top-7 right-0 flex items-center gap-1 bg-blue-600 text-white px-2 py-0.5 rounded-t-lg text-xs z-10">
                             <button onClick={() => moveWidget(sec.id, wIdx, -1)} className="p-0.5 hover:bg-blue-700 rounded">
@@ -1784,6 +1864,7 @@ export default function App() {
                           widget={w}
                           isEditing={true}
                           isSelected={selectedWidgetId === w.id}
+                          defaultFont={siteSettings.defaultFont}
                           onSelect={() => {
                             setSelectedSectionId(sec.id);
                             setSelectedWidgetId(w.id);
@@ -1846,18 +1927,20 @@ export default function App() {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">وضعیت انتشار</label>
-                    <select
-                      value={currentPage.status}
-                      onChange={(e) => updateCurrentPage((p) => ({ ...p, status: e.target.value }), false)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
-                    >
-                      <option value="draft">پیش‌نویس (Draft)</option>
-                      <option value="published">منتشرشده (Published)</option>
-                      <option value="archived">آرشیوشده (Archived)</option>
-                    </select>
-                  </div>
+                  {canPublish && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">وضعیت انتشار</label>
+                      <select
+                        value={currentPage.status}
+                        onChange={(e) => updateCurrentPage((p) => ({ ...p, status: e.target.value }), false)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                      >
+                        <option value="draft">پیش‌نویس (Draft)</option>
+                        <option value="published">منتشرشده (Published)</option>
+                        <option value="archived">آرشیوشده (Archived)</option>
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">سطح دسترسی صفحه</label>
                     <select
@@ -2027,7 +2110,9 @@ export default function App() {
                   {['image', 'video'].includes(selectedWidget.type) && (
                     <>
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">آدرس فایل (URL)</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          {selectedWidget.type === 'video' ? 'آدرس ویدئو / Embed آپارات یا یوتیوب' : 'آدرس فایل (URL)'}
+                        </label>
                         <input
                           type="text"
                           dir="ltr"
@@ -2035,16 +2120,20 @@ export default function App() {
                           onChange={(e) => updateSelectedWidget({ url: e.target.value })}
                           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
                         />
-                        {selectedWidget.type === 'image' && (
-                          <button
-                            onClick={() =>
-                              setMediaPickerCallback(() => (url) => updateSelectedWidget({ url }))
-                            }
-                            className="mt-2 w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold"
-                          >
-                            انتخاب از کتابخانه رسانه
-                          </button>
-                        )}
+                        <button
+                          onClick={() =>
+                            setMediaPickerCallback({
+                              type: selectedWidget.type,
+                              fn: (url) => updateSelectedWidget({ url })
+                            })
+                          }
+                          className="mt-2 w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5 text-blue-600" />
+                          {selectedWidget.type === 'video'
+                            ? 'انتخاب ویدئو از کتابخانه رسانه'
+                            : 'انتخاب تصویر از کتابخانه رسانه'}
+                        </button>
                       </div>
                       {selectedWidget.type === 'image' && (
                         <div>
@@ -2118,25 +2207,51 @@ export default function App() {
                     </>
                   )}
 
-                  {/* Common Typography & Spacing Controls */}
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                  {/* Font Family & Color Customization */}
+                  <div className="pt-2 border-t border-slate-100 space-y-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">رنگ متن</label>
-                      <input
-                        type="color"
-                        value={selectedWidget.color || '#0f172a'}
-                        onChange={(e) => updateSelectedWidget({ color: e.target.value })}
-                        className="w-full h-9 rounded cursor-pointer"
-                      />
+                      <label className="block text-xs font-bold text-slate-700 mb-1">نوع فونت متن</label>
+                      <select
+                        value={selectedWidget.fontFamily || ''}
+                        onChange={(e) => updateSelectedWidget({ fontFamily: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white font-medium"
+                      >
+                        {FONT_OPTIONS.map((f) => (
+                          <option key={f.label} value={f.value}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">رنگ پس‌زمینه</label>
-                      <input
-                        type="color"
-                        value={selectedWidget.bgColor && selectedWidget.bgColor !== 'transparent' ? selectedWidget.bgColor : '#ffffff'}
-                        onChange={(e) => updateSelectedWidget({ bgColor: e.target.value })}
-                        className="w-full h-9 rounded cursor-pointer"
-                      />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">رنگ متن</label>
+                        <input
+                          type="color"
+                          value={selectedWidget.color || '#0f172a'}
+                          onChange={(e) => updateSelectedWidget({ color: e.target.value })}
+                          className="w-full h-9 rounded cursor-pointer border border-slate-200"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-bold text-slate-700">پس‌زمینه</label>
+                          <button
+                            type="button"
+                            onClick={() => updateSelectedWidget({ bgColor: 'transparent' })}
+                            className="text-[10px] text-blue-600 hover:underline"
+                          >
+                            شفاف
+                          </button>
+                        </div>
+                        <input
+                          type="color"
+                          value={selectedWidget.bgColor && selectedWidget.bgColor !== 'transparent' ? selectedWidget.bgColor : '#ffffff'}
+                          onChange={(e) => updateSelectedWidget({ bgColor: e.target.value })}
+                          className="w-full h-9 rounded cursor-pointer border border-slate-200"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -2262,37 +2377,48 @@ export default function App() {
                 </>
               ) : (
                 <p className="text-xs text-slate-500 text-center py-8">
-                  روی هر المان یا سکشن در صفحه کلیک کنید تا تنظیمات ظاهری آن نمایش داده شود.
+                  روی هر المان یا سکشن در صفحه کلیک کنید تا تنظیمات ظاهری، رنگ و فونت آن نمایش داده شود.
                 </p>
               )}
             </div>
           </aside>
         </div>
 
-        {/* Media Library Modal inside Editor */}
+        {/* Media Library Modal inside Editor (Supports both Images and Videos) */}
         {mediaPickerCallback && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">انتخاب تصویر از کتابخانه رسانه</h3>
+                <h3 className="font-bold text-lg">
+                  {mediaPickerCallback.type === 'video' ? 'انتخاب ویدئو از کتابخانه رسانه' : 'انتخاب تصویر از کتابخانه رسانه'}
+                </h3>
                 <button onClick={() => setMediaPickerCallback(null)} className="p-1 hover:bg-slate-100 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                {media.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => {
-                      mediaPickerCallback(item.url);
-                      setMediaPickerCallback(null);
-                    }}
-                    className="cursor-pointer group rounded-xl overflow-hidden border border-slate-200 hover:border-blue-600"
-                  >
-                    <img src={item.url} alt={item.name} className="w-full h-32 object-cover group-hover:scale-105 transition" />
-                    <div className="p-2 text-xs truncate bg-slate-50">{item.name}</div>
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                {media
+                  .filter((item) => item.type === mediaPickerCallback.type)
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        mediaPickerCallback.fn(item.url);
+                        setMediaPickerCallback(null);
+                      }}
+                      className="cursor-pointer group rounded-xl overflow-hidden border border-slate-200 hover:border-blue-600"
+                    >
+                      {item.type === 'video' ? (
+                        <div className="w-full h-32 bg-slate-900 flex items-center justify-center relative">
+                          <video src={item.url} className="w-full h-full object-cover opacity-80" />
+                          <Film className="w-8 h-8 text-white absolute" />
+                        </div>
+                      ) : (
+                        <img src={item.url} alt={item.name} className="w-full h-32 object-cover group-hover:scale-105 transition" />
+                      )}
+                      <div className="p-2 text-xs truncate bg-slate-50 font-medium">{item.name}</div>
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -2314,17 +2440,21 @@ export default function App() {
     return matchesSearch && matchesStatus;
   });
 
+  const filteredMedia = media.filter((m) => mediaFilter === 'all' || m.type === mediaFilter);
+
   return (
-    <div dir={dir} className="min-h-screen bg-slate-50 flex">
+    <div dir={dir} style={{ fontFamily: siteSettings.defaultFont }} className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0">
         <div className="p-6 flex items-center gap-3 border-b border-slate-800">
           <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center">
             <Layout className="w-5 h-5" />
           </div>
-          <div>
-            <div className="font-bold text-white text-sm">صفحه‌ساز حرفه‌ای</div>
-            <div className="text-[11px] text-slate-400">نسخه ابری و عملیاتی</div>
+          <div className="truncate">
+            <div className="font-bold text-white text-sm truncate">{siteSettings.siteName}</div>
+            <div className="text-[11px] text-slate-400">
+              {currentUser.name} ({currentUser.role === 'admin' ? 'مدیر کل' : currentUser.role === 'editor' ? 'ویرایشگر' : 'نویسنده'})
+            </div>
           </div>
         </div>
 
@@ -2372,6 +2502,17 @@ export default function App() {
             <FolderOpen className="w-4 h-4" />
             {lang === 'fa' ? 'کتابخانه رسانه' : 'Media Library'}
           </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition ${
+                activeTab === 'admin' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              {lang === 'fa' ? 'مدیریت و تنظیمات' : 'Admin & Settings'}
+            </button>
+          )}
         </nav>
 
         <div className="p-4 border-t border-slate-800 space-y-2">
@@ -2384,8 +2525,8 @@ export default function App() {
           </button>
           <button
             onClick={() => {
-              localStorage.removeItem('pb_auth');
-              setIsAuthenticated(false);
+              localStorage.removeItem('pb_current_user_v1');
+              setCurrentUser(null);
             }}
             className="w-full py-2 px-3 rounded-xl text-xs font-medium text-red-400 hover:bg-slate-800 flex items-center justify-center gap-2"
           >
@@ -2522,13 +2663,15 @@ export default function App() {
                             >
                               <Download className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => deletePage(page.id)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
-                              title="حذف صفحه"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => deletePage(page.id)}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                                title="حذف صفحه"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -2652,43 +2795,131 @@ export default function App() {
           <div className="max-w-6xl mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-black text-slate-900">کتابخانه فایل‌ها و رسانه‌ها</h1>
-                <p className="text-sm text-slate-500 mt-1">تصاویر خود را آپلود کنید تا در طراحی صفحات از آن‌ها استفاده نمایید.</p>
+                <h1 className="text-2xl font-black text-slate-900">کتابخانه فایل‌ها، تصاویر و ویدئوها</h1>
+                <p className="text-sm text-slate-500 mt-1">
+                  تصاویر و فیلم‌های خود را آپلود کنید تا در طراحی صفحات از آن‌ها استفاده نمایید.
+                </p>
               </div>
-              <label className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm cursor-pointer inline-flex items-center gap-2 self-start">
+              <label className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm cursor-pointer inline-flex items-center gap-2 self-start shadow-sm">
                 <Plus className="w-4 h-4" />
-                آپلود تصویر از سیستم
+                آپلود تصویر یا ویدئو
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = () => {
+                    const isVideo = file.type.startsWith('video/');
+                    if (isVideo) {
+                      const videoUrl = URL.createObjectURL(file);
                       setMedia((prev) => [
                         {
                           id: `m-${generateId()}`,
                           name: file.name,
-                          type: 'image',
-                          url: reader.result,
+                          type: 'video',
+                          url: videoUrl,
                           date: new Date().toLocaleDateString('fa-IR')
                         },
                         ...prev
                       ]);
-                      showToast('تصویر با موفقیت به کتابخانه اضافه شد');
-                    };
-                    reader.readAsDataURL(file);
+                      showToast('ویدئو با موفقیت به کتابخانه اضافه شد');
+                    } else {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        setMedia((prev) => [
+                          {
+                            id: `m-${generateId()}`,
+                            name: file.name,
+                            type: 'image',
+                            url: reader.result,
+                            date: new Date().toLocaleDateString('fa-IR')
+                          },
+                          ...prev
+                        ]);
+                        showToast('تصویر با موفقیت به کتابخانه اضافه شد');
+                      };
+                      reader.readAsDataURL(file);
+                    }
                   }}
                 />
               </label>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-              {media.map((item) => (
+            {/* Filter & Add External Video/Image URL */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                {[
+                  { id: 'all', label: 'همه فایل‌ها' },
+                  { id: 'image', label: 'تصاویر' },
+                  { id: 'video', label: 'فیلم و ویدئوها' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setMediaFilter(tab.id)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                      mediaFilter === tab.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <select
+                  value={mediaUrlType}
+                  onChange={(e) => setMediaUrlType(e.target.value)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-slate-50"
+                >
+                  <option value="video">لینک ویدئو (MP4)</option>
+                  <option value="image">لینک تصویر</option>
+                </select>
+                <input
+                  type="text"
+                  dir="ltr"
+                  value={mediaUrlInput}
+                  onChange={(e) => setMediaUrlInput(e.target.value)}
+                  placeholder="https://example.com/video.mp4"
+                  className="flex-1 md:w-64 px-3 py-2 rounded-xl border border-slate-200 text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!mediaUrlInput.trim()) return;
+                    setMedia((prev) => [
+                      {
+                        id: `m-${generateId()}`,
+                        name: mediaUrlInput.split('/').pop() || 'external-media',
+                        type: mediaUrlType,
+                        url: mediaUrlInput.trim(),
+                        date: new Date().toLocaleDateString('fa-IR')
+                      },
+                      ...prev
+                    ]);
+                    setMediaUrlInput('');
+                    showToast('لینک رسانه به کتابخانه اضافه شد');
+                  }}
+                  className="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold shrink-0"
+                >
+                  افزودن لینک
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+              {filteredMedia.map((item) => (
                 <div key={item.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm group">
-                  <img src={item.url} alt={item.name} className="w-full h-44 object-cover" />
+                  {item.type === 'video' ? (
+                    <div className="w-full h-44 bg-slate-950 relative">
+                      <video src={item.url} controls className="w-full h-full object-contain" />
+                      <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        ویدئو
+                      </span>
+                    </div>
+                  ) : (
+                    <img src={item.url} alt={item.name} className="w-full h-44 object-cover" />
+                  )}
                   <div className="p-3 flex items-center justify-between">
                     <div className="truncate">
                       <div className="text-xs font-bold text-slate-800 truncate">{item.name}</div>
@@ -2703,6 +2934,223 @@ export default function App() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'admin' && isAdmin && (
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900">پنل مدیریت کل، کاربران و تنظیمات وب‌سایت</h1>
+              <p className="text-sm text-slate-500 mt-1">
+                کاربران جدید با سطوح دسترسی مختلف تعریف کنید و تنظیمات عمومی وب‌سایت را پیکربندی نمایید.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Website General Settings Card */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                  <Sliders className="w-5 h-5 text-blue-600" />
+                  <h2 className="font-bold text-lg text-slate-900">تنظیمات عمومی وب‌سایت</h2>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">نام پلتفرم / وب‌سایت</label>
+                  <input
+                    type="text"
+                    value={siteSettings.siteName}
+                    onChange={(e) => setSiteSettings((s) => ({ ...s, siteName: e.target.value }))}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">فونت پیش‌فرض کل سایت و صفحات</label>
+                  <select
+                    value={siteSettings.defaultFont}
+                    onChange={(e) => setSiteSettings((s) => ({ ...s, defaultFont: e.target.value }))}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm bg-white"
+                  >
+                    {FONT_OPTIONS.filter((f) => f.value !== '').map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">آدرس آیکون مرورگر (Favicon URL)</label>
+                  <input
+                    type="text"
+                    dir="ltr"
+                    value={siteSettings.faviconUrl}
+                    onChange={(e) => setSiteSettings((s) => ({ ...s, faviconUrl: e.target.value }))}
+                    placeholder="https://example.com/favicon.png"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">متن کپی‌رایت فوتر صفحات عمومی</label>
+                  <input
+                    type="text"
+                    value={siteSettings.footerText}
+                    onChange={(e) => setSiteSettings((s) => ({ ...s, footerText: e.target.value }))}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">کد رهگیری و آمارگیر (Google Analytics / Script)</label>
+                  <textarea
+                    rows={2}
+                    dir="ltr"
+                    value={siteSettings.analyticsCode}
+                    onChange={(e) => setSiteSettings((s) => ({ ...s, analyticsCode: e.target.value }))}
+                    placeholder="G-XXXXXXXXXX"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => showToast('تنظیمات وب‌سایت با موفقیت ذخیره شد')}
+                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition"
+                >
+                  ذخیره تنظیمات وب‌سایت
+                </button>
+              </div>
+
+              {/* User & Role Management Card */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+                <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <h2 className="font-bold text-lg text-slate-900">مدیریت کاربران و سطوح دسترسی</h2>
+                </div>
+
+                {/* Add New User Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!newUserName.trim() || !newUserUsername.trim() || !newUserPass.trim()) return;
+                    if (users.some((u) => u.username.toLowerCase() === newUserUsername.trim().toLowerCase())) {
+                      showToast('این نام کاربری قبلاً ثبت شده است.');
+                      return;
+                    }
+                    setUsers((prev) => [
+                      ...prev,
+                      {
+                        id: `u-${generateId()}`,
+                        name: newUserName.trim(),
+                        username: newUserUsername.trim(),
+                        password: newUserPass,
+                        role: newUserRole,
+                        createdAt: new Date().toLocaleDateString('fa-IR')
+                      }
+                    ]);
+                    setNewUserName('');
+                    setNewUserUsername('');
+                    setNewUserPass('');
+                    showToast('کاربر جدید با موفقیت ایجاد شد');
+                  }}
+                  className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3"
+                >
+                  <div className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <UserPlus className="w-4 h-4 text-blue-600" />
+                    افزودن کاربر جدید
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <input
+                      type="text"
+                      required
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      placeholder="نام و نام خانوادگی"
+                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                    />
+                    <input
+                      type="text"
+                      required
+                      dir="ltr"
+                      value={newUserUsername}
+                      onChange={(e) => setNewUserUsername(e.target.value)}
+                      placeholder="نام کاربری (انگلیسی)"
+                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                    />
+                    <input
+                      type="text"
+                      required
+                      dir="ltr"
+                      value={newUserPass}
+                      onChange={(e) => setNewUserPass(e.target.value)}
+                      placeholder="رمز عبور"
+                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                    />
+                    <select
+                      value={newUserRole}
+                      onChange={(e) => setNewUserRole(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white font-medium"
+                    >
+                      <option value="admin">مدیر کل (دسترسی کامل)</option>
+                      <option value="editor">ویرایشگر (ساخت و انتشار)</option>
+                      <option value="author">نویسنده (فقط پیش‌نویس)</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full py-2 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-lg text-xs transition"
+                  >
+                    ثبت کاربر و اعطای دسترسی
+                  </button>
+                </form>
+
+                {/* Users List */}
+                <div className="space-y-2.5">
+                  {users.map((u) => (
+                    <div
+                      key={u.id}
+                      className="p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2"
+                    >
+                      <div>
+                        <div className="font-bold text-sm text-slate-900">{u.name}</div>
+                        <div className="text-xs text-slate-500">
+                          نام کاربری: <code className="bg-slate-100 px-1.5 py-0.5 rounded">{u.username}</code> | رمز:{' '}
+                          <code className="bg-slate-100 px-1.5 py-0.5 rounded">{u.password}</code>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={u.role}
+                          disabled={u.username === 'admin'}
+                          onChange={(e) =>
+                            setUsers((prev) =>
+                              prev.map((item) => (item.id === u.id ? { ...item, role: e.target.value } : item))
+                            )
+                          }
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold bg-slate-50"
+                        >
+                          <option value="admin">مدیر کل</option>
+                          <option value="editor">ویرایشگر</option>
+                          <option value="author">نویسنده</option>
+                        </select>
+                        {u.username !== 'admin' && (
+                          <button
+                            onClick={() => {
+                              setUsers((prev) => prev.filter((item) => item.id !== u.id));
+                              showToast('کاربر حذف شد');
+                            }}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
