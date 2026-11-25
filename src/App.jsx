@@ -7,7 +7,7 @@ import {
   Share2, KeyRound, ArrowRight, X, CheckCircle2, AlignLeft, AlignCenter,
   AlignRight, Mic, Volume2, Inbox, StopCircle, Upload, Users, Shield,
   Sliders, Film, UserPlus, AlertTriangle, CheckSquare, Paintbrush,
-  BarChart2, ChevronDown, HelpCircle, DollarSign, MessageSquare, Hash,
+  BarChart2, ChevronDown, DollarSign, MessageSquare, Hash,
   Activity, Clock, AlertCircle, MapPin
 } from 'lucide-react';
 
@@ -242,7 +242,6 @@ const DEFAULT_SITE_SETTINGS = {
   footerText: 'قدرت‌گرفته از پلتفرم صفحه‌ساز Nexora | نکسورا'
 };
 
-// Complete Elementor Widgets List (24 Widgets)
 const WIDGET_TYPES = [
   { type: 'heading', label: { fa: 'عنوان اصلی', en: 'Heading' }, icon: Type },
   { type: 'subheading', label: { fa: 'زیرعنوان', en: 'Subheading' }, icon: Type },
@@ -293,7 +292,7 @@ function resolvePageThemeConfig(pageThemeId, customThemes = [], embeddedCustomTh
       customObj,
       outerClass: isBoxed ? 'py-6 md:py-10 px-3 md:px-6' : '',
       outerStyle: { backgroundColor: customObj.outerBg || '#f1f5f9', color: customObj.textColor || '#0f172a' },
-      innerClass: isBoxed ? 'max-w-5xl mx-auto rounded-2xl shadow-xl overflow-hidden border' : 'w-full',
+      innerClass: isBoxed ? 'max-w-5xl mx-auto rounded-2xl shadow-xl border' : 'w-full',
       innerStyle: { backgroundColor: customObj.surfaceBg || '#ffffff', borderColor: customObj.accentColor || '#6d28d9', borderTopWidth: customObj.topBar ? '5px' : '1px' },
       sectionOverrideClass: customObj.overrideSectionBg ? '!bg-transparent' : '',
       customCss: customObj.customCss || ''
@@ -301,19 +300,18 @@ function resolvePageThemeConfig(pageThemeId, customThemes = [], embeddedCustomTh
   }
   switch (pageThemeId) {
     case 'wp-boxed':
-      return { isCustom: false, outerClass: 'bg-slate-200/80 py-6 md:py-10 px-3 md:px-6', outerStyle: {}, innerClass: 'max-w-5xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden', innerStyle: {}, sectionOverrideClass: '', customCss: '' };
+      return { isCustom: false, outerClass: 'bg-slate-200/80 py-6 md:py-10 px-3 md:px-6', outerStyle: {}, innerClass: 'max-w-5xl mx-auto bg-white rounded-2xl shadow-xl border border-slate-200', innerStyle: {}, sectionOverrideClass: '', customCss: '' };
     case 'wp-editorial':
-      return { isCustom: false, outerClass: 'bg-[#f6f3eb] py-6 md:py-10 px-3 md:px-6 text-stone-900', outerStyle: {}, innerClass: 'max-w-4xl mx-auto bg-[#fffdf9] rounded-xl shadow-md border-t-4 border-purple-700 border-x border-b border-stone-200 overflow-hidden', innerStyle: {}, sectionOverrideClass: '!bg-transparent', customCss: '' };
+      return { isCustom: false, outerClass: 'bg-[#f6f3eb] py-6 md:py-10 px-3 md:px-6 text-stone-900', outerStyle: {}, innerClass: 'max-w-4xl mx-auto bg-[#fffdf9] rounded-xl shadow-md border-t-4 border-purple-700 border-x border-b border-stone-200', innerStyle: {}, sectionOverrideClass: '!bg-transparent', customCss: '' };
     case 'wp-dark':
       return { isCustom: false, outerClass: 'bg-zinc-950 text-zinc-100', outerStyle: {}, innerClass: 'w-full bg-zinc-950 text-zinc-100', innerStyle: {}, sectionOverrideClass: '!bg-zinc-900/90 !text-zinc-100 border-b border-zinc-800', customCss: '' };
     case 'wp-glass':
-      return { isCustom: false, outerClass: 'bg-gradient-to-br from-purple-100 via-indigo-50 to-sky-100 py-8 px-4', outerStyle: {}, innerClass: 'max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl border border-white/70 backdrop-blur-md bg-white/75', innerStyle: {}, sectionOverrideClass: '!bg-white/60 backdrop-blur-sm', customCss: '' };
+      return { isCustom: false, outerClass: 'bg-gradient-to-br from-purple-100 via-indigo-50 to-sky-100 py-8 px-4', outerStyle: {}, innerClass: 'max-w-6xl mx-auto rounded-3xl shadow-2xl border border-white/70 backdrop-blur-md bg-white/75', innerStyle: {}, sectionOverrideClass: '!bg-white/60 backdrop-blur-sm', customCss: '' };
     default:
       return { isCustom: false, outerClass: 'bg-white', outerStyle: {}, innerClass: 'w-full bg-white', innerStyle: {}, sectionOverrideClass: '', customCss: '' };
   }
 }
 
-// --- Interactive Countdown Helper ---
 function CountdownDisplay({ targetDate, accentColor }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -334,9 +332,7 @@ function CountdownDisplay({ targetDate, accentColor }) {
         { label: 'ثانیه', val: seconds }
       ].map((b) => (
         <div key={b.label} className="bg-slate-900 text-white rounded-2xl p-3 shadow-md">
-          <div style={{ color: accentColor || '#c084fc' }} className="text-2xl font-black">
-            {String(b.val).padStart(2, '0')}
-          </div>
+          <div style={{ color: accentColor || '#c084fc' }} className="text-2xl font-black">{String(b.val).padStart(2, '0')}</div>
           <div className="text-[11px] text-slate-300 mt-1">{b.label}</div>
         </div>
       ))}
@@ -344,7 +340,6 @@ function CountdownDisplay({ targetDate, accentColor }) {
   );
 }
 
-// --- Standalone Widget Renderer ---
 function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormSubmit, defaultFont, pageTheme, customThemeObj }) {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formValues, setFormValues] = useState({});
@@ -404,7 +399,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-sm p-4 text-center">
                 <Film className="w-8 h-8 mb-2 opacity-60" />
-                {lang === 'fa' ? 'ویدئو را از کتابخانه رسانه انتخاب کنید یا آدرس فایل را وارد نمایید' : 'Select video from Media Library or enter URL'}
+                ویدئو را از کتابخانه رسانه انتخاب کنید یا آدرس فایل را وارد نمایید
               </div>
             )}
           </div>
@@ -457,12 +452,8 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                 return (
                   <div
                     key={opt.id || idx}
-                    onClick={() => {
-                      if (!isEditing && !pollVoted) setSelectedPollIdx(idx);
-                    }}
-                    className={`relative overflow-hidden rounded-xl border p-3 transition cursor-pointer ${
-                      isChosen ? 'border-purple-600 bg-purple-50/60' : 'border-slate-200 bg-white/90 hover:border-purple-300'
-                    }`}
+                    onClick={() => { if (!isEditing && !pollVoted) setSelectedPollIdx(idx); }}
+                    className={`relative overflow-hidden rounded-xl border p-3 transition cursor-pointer ${isChosen ? 'border-purple-600 bg-purple-50/60' : 'border-slate-200 bg-white/90 hover:border-purple-300'}`}
                   >
                     {(pollVoted || isEditing) && widget.showResults !== false && (
                       <div style={{ width: `${pct}%`, backgroundColor: accent }} className="absolute inset-y-0 right-0 opacity-15 transition-all duration-500" />
@@ -488,9 +479,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                 onClick={() => {
                   if (isEditing || selectedPollIdx === null) return;
                   setPollVoted(true);
-                  if (onFormSubmit) {
-                    onFormSubmit(`نظرسنجی: ${widget.question}`, { 'گزینه انتخابی': options[selectedPollIdx]?.text || '' });
-                  }
+                  if (onFormSubmit) onFormSubmit(`نظرسنجی: ${widget.question}`, { 'گزینه انتخابی': options[selectedPollIdx]?.text || '' });
                 }}
                 style={{ backgroundColor: accent }}
                 className="mt-4 w-full py-2.5 text-white font-bold rounded-xl text-sm hover:opacity-95 transition"
@@ -513,11 +502,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
               const isOpen = openAccordionIdx === idx;
               return (
                 <div key={item.id || idx} className="border border-slate-200 rounded-xl overflow-hidden bg-white text-slate-900">
-                  <button
-                    type="button"
-                    onClick={() => setOpenAccordionIdx(isOpen ? -1 : idx)}
-                    className="w-full p-4 font-bold text-sm flex items-center justify-between hover:bg-slate-50"
-                  >
+                  <button type="button" onClick={() => setOpenAccordionIdx(isOpen ? -1 : idx)} className="w-full p-4 font-bold text-sm flex items-center justify-between hover:bg-slate-50">
                     <span>{item.title}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180 text-purple-600' : ''}`} />
                   </button>
@@ -534,14 +519,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           <div className="max-w-2xl mx-auto border border-slate-200 rounded-2xl overflow-hidden bg-white text-slate-900 text-start">
             <div className="flex border-b border-slate-200 bg-slate-50 overflow-x-auto">
               {tabs.map((t, idx) => (
-                <button
-                  key={t.id || idx}
-                  type="button"
-                  onClick={() => setActiveTabIdx(idx)}
-                  className={`px-5 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition ${
-                    activeTabIdx === idx ? 'border-purple-600 text-purple-700 bg-white' : 'border-transparent text-slate-500'
-                  }`}
-                >
+                <button key={t.id || idx} type="button" onClick={() => setActiveTabIdx(idx)} className={`px-5 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition ${activeTabIdx === idx ? 'border-purple-600 text-purple-700 bg-white' : 'border-transparent text-slate-500'}`}>
                   {t.title}
                 </button>
               ))}
@@ -638,14 +616,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
         return (
           <div className="flex flex-wrap items-center justify-center gap-2.5">
             {(widget.links || []).map((lk, i) => (
-              <a
-                key={lk.id || i}
-                href={isEditing ? undefined : lk.url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => isEditing && e.preventDefault()}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-purple-600 transition"
-              >
+              <a key={lk.id || i} href={isEditing ? undefined : lk.url} target="_blank" rel="noreferrer" onClick={(e) => isEditing && e.preventDefault()} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-purple-600 transition">
                 {lk.name}
               </a>
             ))}
@@ -654,11 +625,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
       case 'map':
         return (
           <div className="w-full h-64 rounded-2xl overflow-hidden border border-slate-200">
-            <iframe
-              title="google-map"
-              className="w-full h-full border-0"
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(widget.address || 'Tehran')}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-            />
+            <iframe title="google-map" className="w-full h-full border-0" src={`https://maps.google.com/maps?q=${encodeURIComponent(widget.address || 'Tehran')}&t=&z=14&ie=UTF8&iwloc=&output=embed`} />
           </div>
         );
       case 'card':
@@ -671,9 +638,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
       case 'gallery':
         return (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(widget.images || []).map((img, i) => (
-              <img key={i} src={img} alt={`gallery-${i}`} className="w-full h-48 object-cover rounded-xl shadow-sm" />
-            ))}
+            {(widget.images || []).map((img, i) => <img key={i} src={img} alt={`gallery-${i}`} className="w-full h-48 object-cover rounded-xl shadow-sm" />)}
           </div>
         );
       case 'table':
@@ -681,18 +646,12 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           <div style={{ color: resolveTextColor('#0f172a') }} className="overflow-x-auto rounded-xl border border-slate-200/60">
             <table className="w-full text-sm">
               <thead className={isDarkTheme ? 'bg-zinc-800' : 'bg-slate-100'}>
-                <tr>
-                  {(widget.headers || []).map((h, i) => (
-                    <th key={i} className="p-3 font-bold border-b border-slate-200/40">{h}</th>
-                  ))}
-                </tr>
+                <tr>{(widget.headers || []).map((h, i) => <th key={i} className="p-3 font-bold border-b border-slate-200/40">{h}</th>)}</tr>
               </thead>
               <tbody>
                 {(widget.rows || []).map((row, rIdx) => (
                   <tr key={rIdx} className="border-b border-slate-100/20 last:border-0">
-                    {row.map((cell, cIdx) => (
-                      <td key={cIdx} className="p-3">{cell}</td>
-                    ))}
+                    {row.map((cell, cIdx) => <td key={cIdx} className="p-3">{cell}</td>)}
                   </tr>
                 ))}
               </tbody>
@@ -711,9 +670,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
           </ul>
         );
       case 'form': {
-        const normalizedFields = (widget.fields || []).map((f, i) =>
-          typeof f === 'string' ? { id: `sf-${i}`, label: f, type: 'text', required: true } : f
-        );
+        const normalizedFields = (widget.fields || []).map((f, i) => (typeof f === 'string' ? { id: `sf-${i}`, label: f, type: 'text', required: true } : f));
         return (
           <div style={{ backgroundColor: isDarkTheme ? '#27272a' : (widget.bgColor && widget.bgColor !== 'transparent' ? widget.bgColor : '#f8fafc'), color: resolveTextColor('#0f172a'), fontFamily: appliedFont, padding: `${widget.padding || 28}px`, borderRadius: `${widget.borderRadius ?? 16}px` }} className="max-w-xl mx-auto border border-slate-200/60 shadow-sm text-start">
             <h3 className="text-xl font-bold mb-4">{widget.title || 'فرم ارتباط با ما'}</h3>
@@ -739,23 +696,9 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
                       {f.label} {f.required && <span className="text-rose-500">*</span>}
                     </label>
                     {f.type === 'textarea' ? (
-                      <textarea
-                        rows={3}
-                        required={!!f.required}
-                        value={formValues[f.label] || ''}
-                        onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))}
-                        placeholder={f.label}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm"
-                      />
+                      <textarea rows={3} required={!!f.required} value={formValues[f.label] || ''} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label} className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm" />
                     ) : (
-                      <input
-                        type={f.type || 'text'}
-                        required={!!f.required}
-                        value={formValues[f.label] || ''}
-                        onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))}
-                        placeholder={f.label}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm"
-                      />
+                      <input type={f.type || 'text'} required={!!f.required} value={formValues[f.label] || ''} onChange={(e) => setFormValues((prev) => ({ ...prev, [f.label]: e.target.value }))} placeholder={f.label} className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm" />
                     )}
                   </div>
                 ))}
@@ -782,6 +725,7 @@ function WidgetRenderer({ widget, isEditing, isSelected, onSelect, lang, onFormS
 
   return (
     <div
+      id={`widget-node-${widget.id}`}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
@@ -1314,16 +1258,25 @@ export default function App() {
     setPages((prev) => prev.map((p) => (p.id === currentPage.id ? next : p)));
   };
 
+  const scrollToElementId = (domId) => {
+    setTimeout(() => {
+      const el = document.getElementById(domId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  };
+
   const addSection = (columns = 1) => {
+    const newSecId = `sec-${generateId()}`;
     const newSec = {
-      id: `sec-${generateId()}`,
+      id: newSecId,
       columns,
       bgColor: '#ffffff',
       paddingY: 48,
       widgets: [{ id: `w-${generateId()}`, type: 'heading', content: 'عنوان بخش جدید', align: 'center', color: '#0f172a', fontSize: 28, fontFamily: '', bgColor: 'transparent', padding: 8, borderRadius: 0 }]
     };
     updateCurrentPage((p) => ({ ...p, sections: [...p.sections, newSec] }));
-    setSelectedSectionId(newSec.id);
+    setSelectedSectionId(newSecId);
+    scrollToElementId(`section-node-${newSecId}`);
   };
 
   const addWidgetToSection = (sectionId, type) => {
@@ -1411,13 +1364,15 @@ export default function App() {
       html: { content: '<div style="padding:20px;background:#f5f3ff;border-radius:12px;text-align:center;font-weight:bold;">کد HTML سفارشی شما</div>' }
     };
 
-    const newWidget = { id: `w-${generateId()}`, type, bgColor: 'transparent', padding: 8, borderRadius: 0, ...defaults[type] };
+    const newWidgetId = `w-${generateId()}`;
+    const newWidget = { id: newWidgetId, type, bgColor: 'transparent', padding: 8, borderRadius: 0, ...defaults[type] };
     updateCurrentPage((p) => ({
       ...p,
       sections: p.sections.map((s) => (s.id === sectionId ? { ...s, widgets: [...s.widgets, newWidget] } : s))
     }));
     setSelectedSectionId(sectionId);
-    setSelectedWidgetId(newWidget.id);
+    setSelectedWidgetId(newWidgetId);
+    scrollToElementId(`widget-node-${newWidgetId}`);
   };
 
   const updateSelectedWidget = (patch) => {
@@ -1540,7 +1495,7 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Left Panel: All Elementor Widgets */}
           <aside className="w-64 bg-white border-e border-slate-200 flex flex-col shrink-0 overflow-y-auto p-3">
             <div className="mb-4">
@@ -1586,12 +1541,13 @@ export default function App() {
             </div>
           </aside>
 
-          {/* Center Canvas */}
-          <main onClick={() => setSelectedWidgetId(null)} className="flex-1 overflow-y-auto p-6 flex justify-center bg-slate-200/70">
-            <div style={{ width: viewport === 'mobile' ? '390px' : viewport === 'tablet' ? '768px' : '100%', ...themeConfig.outerStyle }} className={`max-w-5xl min-h-full shadow-xl rounded-xl overflow-hidden transition-all duration-300 ${themeConfig.outerClass}`}>
-              <div style={themeConfig.innerStyle} className={`nexora-page-container ${themeConfig.innerClass}`}>
+          {/* Center Canvas (Free-scrolling container for unlimited elements) */}
+          <main onClick={() => setSelectedWidgetId(null)} className="flex-1 min-h-0 overflow-y-auto p-6 pb-28 bg-slate-200/70">
+            <div style={{ width: viewport === 'mobile' ? '390px' : viewport === 'tablet' ? '768px' : '100%', ...themeConfig.outerStyle }} className={`max-w-5xl mx-auto h-fit min-h-[calc(100vh-8rem)] shadow-xl rounded-xl transition-all duration-300 ${themeConfig.outerClass}`}>
+              <div style={themeConfig.innerStyle} className={`nexora-page-container rounded-xl ${themeConfig.innerClass}`}>
                 {currentPage.sections.map((sec, sIdx) => (
                   <div
+                    id={`section-node-${sec.id}`}
                     key={sec.id}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1652,6 +1608,21 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+
+                {/* Bottom Quick Add Bar inside Canvas */}
+                <div className="p-6 text-center bg-slate-50/70 border-t border-dashed border-slate-200 rounded-b-xl">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addSection(1);
+                    }}
+                    className="px-4 py-2 bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    افزودن بخش جدید در پایین صفحه
+                  </button>
+                </div>
               </div>
             </div>
           </main>
